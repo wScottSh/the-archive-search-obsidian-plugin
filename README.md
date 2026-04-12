@@ -1,96 +1,91 @@
-# Obsidian Sample Plugin
+# The Archive Search for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Brings [The Archive's](https://zettelkasten.de/the-archive/) search-as-you-type Omnibar to Obsidian. One search field to find, browse, and create notes — keyboard-first, always visible.
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+If you use a flat Zettelkasten and miss The Archive's workflow on non-macOS platforms (or just want it inside Obsidian), this is that.
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+## How it works
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+A persistent sidebar pane with a single search field. Type to filter. Arrow keys to browse. The selected note opens instantly in the editor. Press Enter on a query with no results to create a new note with that title.
 
-## First time developing plugins?
+Wiki-links become search queries: clicking `[[some topic]]` doesn't open a file — it searches for "some topic" and shows you everything related.
 
-Quick starting guide for new plugin devs:
+## Features
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+- **Boolean search** — `AND`, `OR`, `NOT`, `!`, `"exact phrases"`, and `(parentheses)` for grouping. Implicit AND between words (typing `foo bar` finds notes containing both)
+- **Real-time filtering** — results update as you type, no Enter required
+- **Arrow-key browsing** — up/down moves through results but keeps your cursor in the search field. The selected note opens in the editor pane beside the Omnibar
+- **Search highlighting** — matching terms are highlighted in the editor with auto-scroll to the first match
+- **Wiki-link interception** — `[[links]]` trigger a search instead of Obsidian's default open-or-create
+- **Note creation** — Enter on a no-results query creates a new note with a configurable timestamp prefix (e.g. `202604111944 My New Note.md`)
+- **Navigation stack** — unlimited back/forward history, like a browser
+- **Configurable sort** — alphabetical (A→Z, Z→A), date created, or date modified
+- **Folder exclusion** — exclude specific folders from the index, with autocomplete folder picker. Optionally respects Obsidian's native excluded files setting
 
-## Releasing new releases
+## Usage
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+| Action | How |
+| --- | --- |
+| Open/focus Omnibar | Assign a hotkey to **Focus Omnibar** (or click the ribbon icon) |
+| Search | Just type |
+| Browse results | <kbd>↑</kbd> / <kbd>↓</kbd> |
+| Create note from query | <kbd>Enter</kbd> when no results match |
+| Search selected text | Assign a hotkey to **Search selection in Omnibar** |
+| Navigate back/forward | ◀ / ▶ buttons in the Omnibar header |
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+## Search syntax
 
-## Adding your plugin to the community plugin list
+| Syntax | Meaning |
+| --- | --- |
+| `foo bar` | Notes containing both "foo" and "bar" |
+| `foo AND bar` | Same as above (explicit) |
+| `foo OR bar` | Notes containing either |
+| `NOT foo` or `!foo` | Exclude notes containing "foo" |
+| `"exact phrase"` | Match the literal string |
+| `(foo OR bar) baz` | Grouping with parentheses |
+| `\AND` | Backslash escapes operators: searches for literal "AND" |
 
-- Check https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+## Settings
 
-## How to use
+| Setting | Default | Description |
+| --- | --- | --- |
+| Sort order | A → Z | Alphabetical, reverse, by creation date, or by modification date |
+| Highlight search matches | On | Highlight matching terms in the editor |
+| Omnibar position | Right | Left or right sidebar |
+| Show ribbon icon | On | Toggle the sidebar search icon |
+| Intercept wiki-links | On | `[[links]]` trigger searches instead of opening files |
+| Excluded folders | — | Folders to skip (with autocomplete picker) |
+| Respect Obsidian excluded files | On | Also honor Settings → Files & Links → Excluded files |
+| Note ID format | `YYYYMMDDHHmm` | Any [Moment.js format string](https://momentjs.com/docs/#/displaying/format/). Has a live preview in settings. Leave empty for no prefix |
+| ID separator | (space) | Character between the timestamp and the note title |
+| New note folder | Vault root | Where created notes go (with autocomplete picker) |
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+## Installation
 
-## Manually installing the plugin
+### Community plugins (not yet submitted)
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+This plugin isn't on the community plugin list yet. For now, install manually.
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+### Manual
 
-## Funding URL
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/wScottSh/the-archive-search-obsidian-plugin/releases)
+2. Create a folder: `<your vault>/.obsidian/plugins/the-archive-search/`
+3. Copy the three files into that folder
+4. Open Obsidian → Settings → Community plugins → enable "The Archive Search"
 
-You can include funding URLs where people who use your plugin can financially support it.
+### BRAT
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+Install via [BRAT](https://github.com/TfTHacker/obsidian42-brat) using this repo URL:
+```
+wScottSh/the-archive-search-obsidian-plugin
 ```
 
-If you have multiple URLs, you can also do:
+## Background
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+[The Archive](https://zettelkasten.de/the-archive/) is a macOS note-taking app by Christian Tietze, designed around the Zettelkasten method. Its defining feature is an Omnibar that treats search, navigation, and creation as one action. This plugin replicates that behavior inside Obsidian.
 
-## API Documentation
+This is not affiliated with Zettelkasten.de or The Archive.
 
-See https://github.com/obsidianmd/obsidian-api
+## License
+
+[MIT](LICENSE)
