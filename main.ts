@@ -154,8 +154,12 @@ export default class TheArchiveSearchPlugin extends Plugin {
 			if (view instanceof OmnibarView) {
 				if (query !== undefined) {
 					view.setQuery(query);
+					// Delay focus: setQuery triggers openFile() which steals
+					// focus to the editor. Wait for that + highlights to settle.
+					setTimeout(() => view.focusInput(), 150);
+				} else {
+					view.focusInput();
 				}
-				view.focusInput();
 			}
 		}
 	}
