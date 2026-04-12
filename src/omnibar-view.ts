@@ -142,11 +142,31 @@ export class OmnibarView extends ItemView {
         const query = this.inputEl.value;
         this.results = this.plugin.searchEngine.search(query);
         this.selectedIndex = 0;
+
+        // If the query exactly matches a filename, auto-select that result
+        if (query.trim()) {
+            const queryLower = query.trim().toLowerCase();
+            const exactIdx = this.results.findIndex((r) => {
+                // Match against filename without extension
+                const nameNoExt = r.filename.replace(/\.md$/i, '').toLowerCase();
+                return nameNoExt === queryLower;
+            });
+            if (exactIdx !== -1) {
+                this.selectedIndex = exactIdx;
+            }
+        }
+
         this.renderResults();
 
-        // Open the first result in the editor if there are results
+        // Open the selected result in the editor if there are results
         if (this.results.length > 0) {
             this.openSelectedInEditor();
+        }
+
+        // Scroll selected into view (for exact-match jumps)
+        const selectedEl = this.resultListEl.querySelector('.is-selected');
+        if (selectedEl) {
+            selectedEl.scrollIntoView({ block: 'nearest' });
         }
 
         // Push to nav stack (unless we're navigating back/forward)
@@ -273,17 +293,51 @@ export class OmnibarView extends ItemView {
     }
 
     /**
-     * Handle Enter key: open the selected result and focus the editor.
+     * Handle Enter key: open the selected result, clear highlights,
+     * and move cursor to the first match in the file.
      */
     private async handleEnter(): Promise<void> {
         if (this.results.length > 0) {
             await this.openSelectedInEditor();
-            // Move cursor to the editor
-            const leaf = this.app.workspace.getMostRecentLeaf();
-            if (leaf?.view instanceof MarkdownView) {
-                this.app.workspace.setActiveLeaf(leaf, { focus: true });
-                leaf.view.editor.focus();
-            }
+
+            // Small delay to let the file fully load
+            setTimeout(() => {
+                const leaf = this.app.workspace.getMostRecentLeaf();
+                if (leaf?.view instanceof MarkdownView) {
+                    const editor = leaf.view.editor;
+
+                    // Clear highlights
+                    const editorView = this.getEditorViewFromLeaf(leaf);
+                    if (editorView) {
+                        clearHighlightsInEditor(editorView);
+                    }
+
+                    // Move cursor to first match
+                    const query = this.inputEl.value.trim();
+                    if (query) {
+                        const ast = parseQuery(query);
+                        const terms = extractSearchTerms(ast);
+                        if (terms.length > 0) {
+                            const docText = editor.getValue().toLowerCase();
+                            let firstPos = Infinity;
+                            for (const term of terms) {
+                                const pos = docText.indexOf(term.toLowerCase());
+                                if (pos !== -1 && pos < firstPos) {
+                                    firstPos = pos;
+                                }
+                            }
+                            if (firstPos !== Infinity) {
+                                const editorPos = editor.offsetToPos(firstPos);
+                                editor.setCursor(editorPos);
+                            }
+                        }
+                    }
+
+                    // Focus the editor
+                    this.app.workspace.setActiveLeaf(leaf, { focus: true });
+                    editor.focus();
+                }
+            }, 120);
         }
     }
 
