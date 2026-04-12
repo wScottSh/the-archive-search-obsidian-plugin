@@ -3,7 +3,6 @@
  *
  * Implements Obsidian-native patterns:
  * - AbstractInputSuggest for folder pickers
- * - addMomentFormat for date format with live preview
  * - Dynamic add/remove lists for excluded folders
  * - Proper section grouping with setHeading()
  */
@@ -39,14 +38,8 @@ export const SORT_ORDER_LABELS: Record<SortOrder, string> = {
 // ─── Settings interface ──────────────────────────────────────────
 
 export interface ArchiveSearchSettings {
-    /** Moment.js format string for new note IDs. Empty = no prefix. */
-    idFormat: string;
-    /** Separator between ID prefix and title */
-    idSeparator: string;
     /** Whether wiki-link clicks redirect to the Omnibar */
     interceptWikiLinks: boolean;
-    /** Folder path for newly created notes (relative to vault root) */
-    newNotePath: string;
     /** Highlight search terms in the editor */
     highlightMatches: boolean;
     /** Sort order for search results */
@@ -62,10 +55,7 @@ export interface ArchiveSearchSettings {
 }
 
 export const DEFAULT_SETTINGS: ArchiveSearchSettings = {
-    idFormat: 'YYYYMMDDHHmm',
-    idSeparator: ' ',
     interceptWikiLinks: true,
-    newNotePath: '',
     highlightMatches: true,
     sortOrder: 'a-z',
     omnibarPosition: 'right',
@@ -250,61 +240,5 @@ export class ArchiveSearchSettingTab extends PluginSettingTab {
             })
         );
 
-        // ── Note creation ──
-
-        new Setting(containerEl).setName('Note creation').setHeading();
-
-        new Setting(containerEl)
-            .setName('New note folder')
-            .setDesc('Folder where new notes are created. Leave empty for vault root.')
-            .addSearch((search) => {
-                search
-                    .setPlaceholder('e.g. Zettelkasten')
-                    .setValue(this.plugin.settings.newNotePath)
-                    .onChange(async (value) => {
-                        this.plugin.settings.newNotePath = value.trim();
-                        await this.plugin.saveSettings();
-                    });
-                new FolderSuggest(this.app, search.inputEl);
-            });
-
-        // Date format with live preview
-        const dateSampleEl = containerEl.createDiv({
-            cls: 'setting-item-description',
-        });
-        dateSampleEl.style.marginTop = '-8px';
-        dateSampleEl.style.marginBottom = '12px';
-        dateSampleEl.style.paddingLeft = '18px';
-
-        new Setting(containerEl)
-            .setName('Note ID format')
-            .setDesc(
-                'Moment.js format for the timestamp prefix. Leave empty for no prefix.'
-            )
-            .addMomentFormat((format) => {
-                format
-                    .setDefaultFormat('YYYYMMDDHHmm')
-                    .setValue(this.plugin.settings.idFormat)
-                    .setSampleEl(dateSampleEl)
-                    .onChange(async (value) => {
-                        this.plugin.settings.idFormat = value;
-                        await this.plugin.saveSettings();
-                    });
-            });
-
-        new Setting(containerEl)
-            .setName('ID separator')
-            .setDesc(
-                'Character between the ID prefix and the note title. Common: space, dash, underscore.'
-            )
-            .addText((text) =>
-                text
-                    .setPlaceholder(' ')
-                    .setValue(this.plugin.settings.idSeparator)
-                    .onChange(async (value) => {
-                        this.plugin.settings.idSeparator = value;
-                        await this.plugin.saveSettings();
-                    })
-            );
     }
 }

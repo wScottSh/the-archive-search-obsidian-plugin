@@ -4,14 +4,13 @@
  * - Persistent sidebar pane (ItemView)
  * - Text input with real-time filtering
  * - Arrow-key browsing opens selected file in editor
- * - Enter-to-create when no match exists
  * - Unlimited navigation stack with back/forward
  */
 
 import { ItemView, MarkdownView, WorkspaceLeaf, TFile, setIcon } from 'obsidian';
 import type TheArchiveSearchPlugin from '../main';
 import { SearchResult } from './search-engine';
-import { createNoteFromSearch } from './note-creator';
+
 import { parseQuery } from './parser';
 import { extractSearchTerms, highlightInEditor, clearHighlightsInEditor } from './editor-highlight';
 import { EditorView } from '@codemirror/view';
@@ -28,7 +27,7 @@ export class OmnibarView extends ItemView {
 
     private inputEl: HTMLInputElement;
     private resultListEl: HTMLElement;
-    private createPromptEl: HTMLElement;
+
     private navBackEl: HTMLElement;
     private navForwardEl: HTMLElement;
 
@@ -67,7 +66,7 @@ export class OmnibarView extends ItemView {
 
         this.inputEl = headerEl.createEl('input', {
             type: 'text',
-            placeholder: 'Search or create...',
+            placeholder: 'Search...',
             cls: 'omnibar-input',
         });
 
@@ -85,9 +84,7 @@ export class OmnibarView extends ItemView {
         // ── Result list ──
         this.resultListEl = container.createDiv({ cls: 'omnibar-results' });
 
-        // ── Create prompt ──
-        this.createPromptEl = container.createDiv({ cls: 'omnibar-create-prompt' });
-        this.createPromptEl.style.display = 'none';
+
 
         // ── Event listeners ──
         this.inputEl.addEventListener('input', () => {
@@ -166,19 +163,9 @@ export class OmnibarView extends ItemView {
 
         const query = this.inputEl.value.trim();
 
-        if (this.results.length === 0 && query) {
-            this.createPromptEl.style.display = 'block';
-            this.createPromptEl.empty();
-            const icon = this.createPromptEl.createSpan({ cls: 'omnibar-create-icon' });
-            icon.textContent = '↵';
-            this.createPromptEl.createSpan({
-                text: ` Create "${query}"`,
-                cls: 'omnibar-create-text',
-            });
+        if (this.results.length === 0) {
             return;
         }
-
-        this.createPromptEl.style.display = 'none';
 
         for (let i = 0; i < this.results.length; i++) {
             const result = this.results[i];
@@ -286,30 +273,11 @@ export class OmnibarView extends ItemView {
     }
 
     /**
-     * Handle Enter key: either open the selected result or create a new note.
+     * Handle Enter key: open the selected result.
      */
     private async handleEnter(): Promise<void> {
-        const query = this.inputEl.value.trim();
-        if (!query) return;
-
         if (this.results.length > 0) {
-            // Open the selected result
             await this.openSelectedInEditor();
-        } else {
-            // Create a new note
-            const file = await createNoteFromSearch(
-                this.app,
-                query,
-                this.plugin.settings
-            );
-            if (file) {
-                const leaf = this.app.workspace.getMostRecentLeaf();
-                if (leaf) {
-                    await leaf.openFile(file);
-                }
-                // Re-execute search to show the new file
-                this.executeSearch();
-            }
         }
     }
 
