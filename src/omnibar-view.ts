@@ -8,7 +8,7 @@
  * - Unlimited navigation stack with back/forward
  */
 
-import { ItemView, WorkspaceLeaf, TFile, setIcon } from 'obsidian';
+import { ItemView, MarkdownView, WorkspaceLeaf, TFile, setIcon } from 'obsidian';
 import type TheArchiveSearchPlugin from '../main';
 import { SearchResult } from './search-engine';
 import { createNoteFromSearch } from './note-creator';
@@ -114,7 +114,7 @@ export class OmnibarView extends ItemView {
 
     async onClose(): Promise<void> {
         // Clear any highlights in the editor
-        const editorView = this.getEditorView();
+        const editorView = this.getEditorViewFromLeaf();
         if (editorView) {
             clearHighlightsInEditor(editorView);
         }
@@ -242,29 +242,33 @@ export class OmnibarView extends ItemView {
             if (query && this.plugin.settings.highlightMatches) {
                 const ast = parseQuery(query);
                 const terms = extractSearchTerms(ast);
-                // Get the CodeMirror EditorView from the leaf
-                const editorView = this.getEditorView();
-                if (editorView && terms.length > 0) {
-                    // Small delay to ensure file content is loaded
+                if (terms.length > 0) {
+                    // Delay to let the file content load, then highlight
+                    // We re-acquire the EditorView from the specific leaf
+                    // we opened the file into (not the active view, which
+                    // is the Omnibar sidebar when using arrow keys)
                     setTimeout(() => {
-                        const view = this.getEditorView();
-                        if (view) {
-                            highlightInEditor(view, terms);
+                        const editorView = this.getEditorViewFromLeaf(leaf);
+                        if (editorView) {
+                            highlightInEditor(editorView, terms);
                         }
-                    }, 50);
+                    }, 100);
                 }
             }
         }
     }
 
     /**
-     * Get the CodeMirror EditorView from the active editor.
+     * Get the CodeMirror EditorView from a specific leaf.
+     * Falls back to getMostRecentLeaf if no leaf is provided.
+     *
+     * Uses MarkdownView (not ItemView) to avoid returning the
+     * Omnibar itself when the sidebar has focus.
      */
-    private getEditorView(): EditorView | null {
-        const activeView = this.app.workspace.getActiveViewOfType(ItemView);
-        if (activeView) {
-            // Access the CodeMirror editor via the internal API
-            const editor = (activeView as any)?.editor;
+    private getEditorViewFromLeaf(leaf?: WorkspaceLeaf | null): EditorView | null {
+        const targetLeaf = leaf ?? this.app.workspace.getMostRecentLeaf();
+        if (targetLeaf?.view instanceof MarkdownView) {
+            const editor = (targetLeaf.view as any)?.editor;
             if (editor?.cm instanceof EditorView) {
                 return editor.cm;
             }
