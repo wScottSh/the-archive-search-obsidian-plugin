@@ -7,7 +7,7 @@
  * - Unlimited navigation stack with back/forward
  */
 
-import { ItemView, MarkdownView, WorkspaceLeaf, TFile, setIcon } from 'obsidian';
+import { ItemView, MarkdownView, WorkspaceLeaf, TFile, Menu, setIcon } from 'obsidian';
 import type TheArchiveSearchPlugin from '../main';
 import { SearchResult } from './search-engine';
 
@@ -33,6 +33,10 @@ export class OmnibarView extends ItemView {
 
     private results: SearchResult[] = [];
     private selectedIndex = 0;
+
+    // Multi-select state (independent from arrow-key browsing)
+    private selectedIndices: Set<number> = new Set();
+    private lastClickedIndex = -1;
 
     // Navigation stack
     private navStack: NavEntry[] = [];
@@ -94,13 +98,18 @@ export class OmnibarView extends ItemView {
         this.inputEl.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                this.moveSelection(1);
+                this.moveSelection(1, e.shiftKey);
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                this.moveSelection(-1);
+                this.moveSelection(-1, e.shiftKey);
             } else if (e.key === 'Enter') {
                 e.preventDefault();
                 this.handleEnter();
+            } else if (e.key === 'Escape') {
+                if (this.selectedIndices.size > 0) {
+                    e.preventDefault();
+                    this.clearMultiSelect();
+                }
             }
         });
 
@@ -142,6 +151,7 @@ export class OmnibarView extends ItemView {
         const query = this.inputEl.value;
         this.results = this.plugin.searchEngine.search(query);
         this.selectedIndex = 0;
+        this.selectedIndices.clear(); // New search clears multi-select
 
         // If the query exactly matches a filename, auto-select that result
         if (query.trim()) {
@@ -189,9 +199,14 @@ export class OmnibarView extends ItemView {
 
         for (let i = 0; i < this.results.length; i++) {
             const result = this.results[i];
-            const itemEl = this.resultListEl.createDiv({
-                cls: `omnibar-result-item${i === this.selectedIndex ? ' is-selected' : ''}`,
-            });
+            const isActive = i === this.selectedIndex;
+            const isMulti = this.selectedIndices.has(i);
+
+            let cls = 'omnibar-result-item';
+            if (isActive) cls += ' is-selected';
+            if (isMulti) cls += ' is-multi-selected';
+
+            const itemEl = this.resultListEl.createDiv({ cls });
 
             const titleEl = itemEl.createSpan({
                 cls: 'omnibar-result-title',
@@ -212,34 +227,123 @@ export class OmnibarView extends ItemView {
                 });
             }
 
-            // Click to select and open
-            itemEl.addEventListener('click', () => {
-                this.selectedIndex = i;
-                this.renderResults();
-                this.openSelectedInEditor();
-                this.pushNavState();
+            // Click handler: plain / ctrl / shift
+            itemEl.addEventListener('click', (e: MouseEvent) => {
+                if (e.ctrlKey || e.metaKey) {
+                    // Ctrl+click: toggle this item in multi-select
+                    if (this.selectedIndices.has(i)) {
+                        this.selectedIndices.delete(i);
+                    } else {
+                        this.selectedIndices.add(i);
+                    }
+                    this.lastClickedIndex = i;
+                    this.renderResults();
+                } else if (e.shiftKey) {
+                    // Shift+click: range select from lastClickedIndex (or selectedIndex) to i
+                    const anchor = this.lastClickedIndex >= 0 ? this.lastClickedIndex : this.selectedIndex;
+                    const start = Math.min(anchor, i);
+                    const end = Math.max(anchor, i);
+                    for (let j = start; j <= end; j++) {
+                        this.selectedIndices.add(j);
+                    }
+                    this.renderResults();
+                } else {
+                    // Plain click: clear multi-select, select and open
+                    this.selectedIndices.clear();
+                    this.lastClickedIndex = i;
+                    this.selectedIndex = i;
+                    this.renderResults();
+                    this.openSelectedInEditor();
+                    this.pushNavState();
+                }
+            });
+
+            // Right-click: native Obsidian context menu
+            itemEl.addEventListener('contextmenu', (e: MouseEvent) => {
+                e.preventDefault();
+
+                // If right-clicking a non-selected item, select just that one
+                if (!this.selectedIndices.has(i) && i !== this.selectedIndex) {
+                    this.selectedIndices.clear();
+                    this.selectedIndices.add(i);
+                    this.renderResults();
+                }
+
+                const files = this.getSelectedFiles();
+                const menu = new Menu();
+
+                if (files.length > 1) {
+                    this.app.workspace.trigger('files-menu', menu, files, 'the-archive-search');
+                } else if (files.length === 1) {
+                    this.app.workspace.trigger('file-menu', menu, files[0], 'the-archive-search');
+                }
+
+                menu.showAtMouseEvent(e);
             });
         }
     }
 
     /**
      * Move the selection highlight up or down.
+     * If shift is held, also add to multi-select.
      */
-    private moveSelection(delta: number): void {
+    private moveSelection(delta: number, shift = false): void {
         if (this.results.length === 0) return;
+
+        if (shift) {
+            // Shift+Arrow: add current position to multi-select, then move
+            this.selectedIndices.add(this.selectedIndex);
+        } else {
+            // Plain arrow: clear multi-select
+            this.selectedIndices.clear();
+        }
 
         this.selectedIndex = Math.max(
             0,
             Math.min(this.results.length - 1, this.selectedIndex + delta)
         );
+
+        if (shift) {
+            this.selectedIndices.add(this.selectedIndex);
+        }
+
         this.renderResults();
-        this.openSelectedInEditor();
+
+        if (!shift) {
+            this.openSelectedInEditor();
+        }
 
         // Scroll selected into view
         const selectedEl = this.resultListEl.querySelector('.is-selected');
         if (selectedEl) {
             selectedEl.scrollIntoView({ block: 'nearest' });
         }
+    }
+
+    /**
+     * Clear the multi-select state and re-render.
+     */
+    private clearMultiSelect(): void {
+        this.selectedIndices.clear();
+        this.lastClickedIndex = -1;
+        this.renderResults();
+    }
+
+    /**
+     * Get the TFile[] for all selected items.
+     * Returns multi-selected items if any, otherwise just the active item.
+     */
+    private getSelectedFiles(): TFile[] {
+        if (this.selectedIndices.size > 0) {
+            return Array.from(this.selectedIndices)
+                .filter((idx) => idx >= 0 && idx < this.results.length)
+                .map((idx) => this.results[idx].file);
+        }
+        // Fallback to just the active (arrow-key) selection
+        if (this.selectedIndex >= 0 && this.selectedIndex < this.results.length) {
+            return [this.results[this.selectedIndex].file];
+        }
+        return [];
     }
 
     /**

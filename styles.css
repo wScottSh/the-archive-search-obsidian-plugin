@@ -93,6 +93,12 @@
 	border-left-color: var(--interactive-accent);
 }
 
+.omnibar-result-item.is-multi-selected {
+	background: var(--background-secondary-alt);
+	border-left-color: var(--interactive-accent);
+	border-left-style: dashed;
+}
+
 .omnibar-result-title {
 	flex: 1;
 	min-width: 0;
