@@ -14,7 +14,7 @@ import {
 	DEFAULT_SETTINGS,
 	ArchiveSearchSettingTab,
 } from './src/settings';
-import { createWikiLinkProcessor } from './src/wiki-link-handler';
+import { registerWikiLinkDomHandler, createWikiLinkEditorExtension } from './src/wiki-link-handler';
 import { searchHighlightField } from './src/editor-highlight';
 
 export default class TheArchiveSearchPlugin extends Plugin {
@@ -54,14 +54,17 @@ export default class TheArchiveSearchPlugin extends Plugin {
 			},
 		});
 
-		// Register wiki-link interception (post-processor)
-		this.registerMarkdownPostProcessor(createWikiLinkProcessor(this));
+		// Register wiki-link interception — Layer 1: global DOM click (Reading mode)
+		registerWikiLinkDomHandler(this);
 
 		// Register settings tab
 		this.addSettingTab(new ArchiveSearchSettingTab(this.app, this));
 
-		// Register the search highlight editor extension (CodeMirror StateField)
+		// Register editor extensions (CodeMirror 6):
+		// - Search term highlighting StateField
+		// - Wiki-link interception in Live Preview (Layer 2)
 		this.registerEditorExtension(searchHighlightField);
+		this.registerEditorExtension(createWikiLinkEditorExtension(this));
 
 		// Ribbon icon (conditional)
 		this.updateRibbonIcon();
