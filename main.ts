@@ -6,7 +6,7 @@
  * arrow-key browsing with editor preview, and note creation.
  */
 
-import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { Plugin, MarkdownView, WorkspaceLeaf } from 'obsidian';
 import { SearchEngine } from './src/search-engine';
 import { OmnibarView, VIEW_TYPE_OMNIBAR } from './src/omnibar-view';
 import {
@@ -32,25 +32,18 @@ export default class TheArchiveSearchPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_OMNIBAR, (leaf) => new OmnibarView(leaf, this));
 
 		// Register the "Focus Omnibar" command (user assigns hotkey in settings)
+		// If there's a text selection in the editor, it auto-populates the Omnibar
 		this.addCommand({
 			id: 'focus-omnibar',
 			name: 'Focus Omnibar',
 			callback: () => {
-				this.revealOmnibar();
-			},
-		});
-
-		// Register the "Search in Omnibar" command (uses current selection)
-		this.addCommand({
-			id: 'search-in-omnibar',
-			name: 'Search selection in Omnibar',
-			editorCallback: (editor) => {
-				const selection = editor.getSelection();
-				if (selection) {
-					this.revealOmnibar(selection);
-				} else {
-					this.revealOmnibar();
+				// Grab selection from the most recent editor (if any)
+				const leaf = this.app.workspace.getMostRecentLeaf();
+				let selection = '';
+				if (leaf?.view instanceof MarkdownView) {
+					selection = leaf.view.editor.getSelection()?.trim() || '';
 				}
+				this.revealOmnibar(selection || undefined);
 			},
 		});
 
