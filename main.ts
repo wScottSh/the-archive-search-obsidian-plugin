@@ -32,7 +32,7 @@ export default class TheArchiveSearchPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_OMNIBAR, (leaf) => new OmnibarView(leaf, this));
 
 		// Register the "Focus Omnibar" command (user assigns hotkey in settings)
-		// Priority: selected text > wiki-link at cursor > plain focus
+		// Priority: selected text > wiki-link at cursor > hashtag at cursor > plain focus
 		this.addCommand({
 			id: 'focus-omnibar',
 			name: 'Focus Omnibar',
@@ -69,6 +69,24 @@ export default class TheArchiveSearchPlugin extends Plugin {
 										linkText = linkText.split('|')[0];
 									}
 									searchText = linkText.trim();
+								}
+							}
+						}
+
+						// If no wiki-link found, check for #hashtag at cursor
+						if (!searchText) {
+							// Scan left for # (must be preceded by whitespace or at start of line)
+							const hashMatch = beforeCursor.match(/(^|\s)#([^\s]*)$/);
+							if (hashMatch) {
+								const hashStart = beforeCursor.lastIndexOf('#');
+								// Scan right for end of tag (whitespace or end of line)
+								const afterCursor = line.substring(ch);
+								const tagEnd = afterCursor.search(/\s/);
+								const fullTag = tagEnd === -1
+									? line.substring(hashStart)
+									: line.substring(hashStart, ch + tagEnd);
+								if (fullTag.length > 1) { // more than just #
+									searchText = fullTag;
 								}
 							}
 						}
