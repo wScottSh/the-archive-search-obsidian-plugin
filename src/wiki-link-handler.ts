@@ -113,15 +113,18 @@ export function createWikiLinkEditorExtension(plugin: TheArchiveSearchPlugin) {
             // followed by <span class="cm-hashtag cm-hashtag-end">tagname</span>
             const hashSpan = target.closest('.cm-hashtag') as HTMLElement | null;
             if (hashSpan) {
-                // Collect the full tag text from adjacent .cm-hashtag siblings
-                let tagText = '';
-                let el: Element | null = hashSpan;
-                // Walk left to find the beginning
-                while (el?.previousElementSibling?.classList.contains('cm-hashtag')) {
-                    el = el.previousElementSibling;
+                // Find the start of THIS tag (walk left to cm-hashtag-begin)
+                let startEl: Element = hashSpan;
+                while (
+                    !startEl.classList.contains('cm-hashtag-begin') &&
+                    startEl.previousElementSibling?.classList.contains('cm-hashtag')
+                ) {
+                    startEl = startEl.previousElementSibling;
                 }
-                // Now walk right collecting text
-                while (el?.classList.contains('cm-hashtag')) {
+                // Collect text from startEl rightward, stopping at the next cm-hashtag-begin
+                let tagText = startEl.textContent || '';
+                let el: Element | null = startEl.nextElementSibling;
+                while (el?.classList.contains('cm-hashtag') && !el.classList.contains('cm-hashtag-begin')) {
                     tagText += el.textContent || '';
                     el = el.nextElementSibling;
                 }
