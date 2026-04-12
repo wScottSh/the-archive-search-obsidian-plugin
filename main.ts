@@ -32,18 +32,50 @@ export default class TheArchiveSearchPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_OMNIBAR, (leaf) => new OmnibarView(leaf, this));
 
 		// Register the "Focus Omnibar" command (user assigns hotkey in settings)
-		// If there's a text selection in the editor, it auto-populates the Omnibar
+		// Priority: selected text > wiki-link at cursor > plain focus
 		this.addCommand({
 			id: 'focus-omnibar',
 			name: 'Focus Omnibar',
 			callback: () => {
-				// Grab selection from the most recent editor (if any)
 				const leaf = this.app.workspace.getMostRecentLeaf();
-				let selection = '';
+				let searchText = '';
+
 				if (leaf?.view instanceof MarkdownView) {
-					selection = leaf.view.editor.getSelection()?.trim() || '';
+					const editor = leaf.view.editor;
+					const selection = editor.getSelection()?.trim();
+
+					if (selection) {
+						searchText = selection;
+					} else {
+						// Check if cursor is inside a [[wiki-link]]
+						const cursor = editor.getCursor();
+						const line = editor.getLine(cursor.line);
+						const ch = cursor.ch;
+
+						// Scan left for [[
+						const beforeCursor = line.substring(0, ch);
+						const openIdx = beforeCursor.lastIndexOf('[[');
+						if (openIdx !== -1) {
+							// Make sure there's no ]] between [[ and cursor
+							const between = beforeCursor.substring(openIdx + 2);
+							if (!between.includes(']]')) {
+								// Scan right for ]]
+								const afterCursor = line.substring(ch);
+								const closeIdx = afterCursor.indexOf(']]');
+								if (closeIdx !== -1) {
+									let linkText = line.substring(openIdx + 2, ch + closeIdx);
+									// Handle aliased links: [[target|alias]]
+									if (linkText.includes('|')) {
+										linkText = linkText.split('|')[0];
+									}
+									searchText = linkText.trim();
+								}
+							}
+						}
+					}
 				}
-				this.revealOmnibar(selection || undefined);
+
+				this.revealOmnibar(searchText || undefined);
 			},
 		});
 

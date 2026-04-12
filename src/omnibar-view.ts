@@ -273,11 +273,17 @@ export class OmnibarView extends ItemView {
     }
 
     /**
-     * Handle Enter key: open the selected result.
+     * Handle Enter key: open the selected result and focus the editor.
      */
     private async handleEnter(): Promise<void> {
         if (this.results.length > 0) {
             await this.openSelectedInEditor();
+            // Move cursor to the editor
+            const leaf = this.app.workspace.getMostRecentLeaf();
+            if (leaf?.view instanceof MarkdownView) {
+                this.app.workspace.setActiveLeaf(leaf, { focus: true });
+                leaf.view.editor.focus();
+            }
         }
     }
 
