@@ -6,7 +6,7 @@
  * arrow-key browsing with editor preview, and note creation.
  */
 
-import { Plugin, MarkdownView, WorkspaceLeaf } from 'obsidian';
+import { Plugin, MarkdownView, WorkspaceLeaf, Platform } from 'obsidian';
 import { SearchEngine } from './src/search-engine';
 import { OmnibarView, VIEW_TYPE_OMNIBAR } from './src/omnibar-view';
 import {
@@ -15,6 +15,7 @@ import {
 	ArchiveSearchSettingTab,
 } from './src/settings';
 import { registerWikiLinkDomHandler, createWikiLinkEditorExtension } from './src/wiki-link-handler';
+import { MobileSearchModal } from './src/mobile-search-modal';
 import { searchHighlightField } from './src/editor-highlight';
 
 export default class TheArchiveSearchPlugin extends Plugin {
@@ -175,7 +176,13 @@ export default class TheArchiveSearchPlugin extends Plugin {
 	 * and wiki-link handler.
 	 */
 	async revealOmnibar(query?: string): Promise<void> {
-		// Find existing Omnibar leaf or create one
+		// Mobile: open full-screen modal instead of sidebar
+		if (Platform.isMobileApp) {
+			new MobileSearchModal(this.app, this, query).open();
+			return;
+		}
+
+		// Desktop: sidebar Omnibar (unchanged)
 		let leaf: WorkspaceLeaf | null = null;
 
 		this.app.workspace.iterateAllLeaves((l) => {

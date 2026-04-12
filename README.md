@@ -56,6 +56,24 @@ Wiki-links become search queries: clicking `[[some topic]]` doesn't open a file 
 | Excluded folders | — | Folders to skip (with autocomplete picker) |
 | Respect Obsidian excluded files | On | Also honor Settings → Files & Links → Excluded files |
 
+## Mobile
+
+On phones and tablets, the Omnibar opens as a full-screen search modal instead of a sidebar pane.
+
+- **Tap a result** to open the note
+- **Wiki-links and hashtags** route to the modal automatically
+- **Real-time filtering** works the same as desktop — results update on every keystroke
+- **Back/forward navigation** is preserved via header buttons
+
+### Adding to your mobile toolbar
+
+1. Open **Settings → Mobile → Manage toolbar options**
+2. Tap **Add global command**
+3. Search for **"Focus Omnibar"** and add it
+4. The search icon will now appear in your editing toolbar
+
+You can also set it as your **pull-down Quick Action** under **Settings → Toolbar**.
+
 ## Installation
 
 ### Community plugins (not yet submitted)
