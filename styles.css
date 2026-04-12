@@ -73,6 +73,9 @@
 }
 
 .omnibar-result-item {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
 	padding: 6px 12px;
 	cursor: pointer;
 	font-size: 13px;
@@ -91,7 +94,8 @@
 }
 
 .omnibar-result-title {
-	display: block;
+	flex: 1;
+	min-width: 0;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -99,6 +103,16 @@
 
 .omnibar-result-title.is-filename-match {
 	font-weight: 600;
+}
+
+.omnibar-result-path {
+	flex-shrink: 0;
+	font-size: 11px;
+	color: var(--text-faint);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 40%;
 }
 
 /* ─── Create prompt ───────────────────────────────────────────── */

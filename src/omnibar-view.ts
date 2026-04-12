@@ -196,6 +196,15 @@ export class OmnibarView extends ItemView {
                 titleEl.addClass('is-filename-match');
             }
 
+            // Folder path on the right
+            const folderPath = result.file.parent?.path || '';
+            if (folderPath) {
+                itemEl.createSpan({
+                    cls: 'omnibar-result-path',
+                    text: folderPath,
+                });
+            }
+
             // Click to select and open
             itemEl.addEventListener('click', () => {
                 this.selectedIndex = i;
