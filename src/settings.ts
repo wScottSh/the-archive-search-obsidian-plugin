@@ -52,6 +52,10 @@ export interface ArchiveSearchSettings {
     respectObsidianExcluded: boolean;
     /** Plugin-specific folder exclusions */
     excludedFolders: string[];
+    /** Where to create new notes from the omnibar */
+    newNoteLocation: 'vault-root' | 'custom';
+    /** Custom folder path for new notes (used when newNoteLocation === 'custom') */
+    newNoteFolder: string;
 }
 
 export const DEFAULT_SETTINGS: ArchiveSearchSettings = {
@@ -62,6 +66,8 @@ export const DEFAULT_SETTINGS: ArchiveSearchSettings = {
     showRibbonIcon: true,
     respectObsidianExcluded: true,
     excludedFolders: [],
+    newNoteLocation: 'vault-root',
+    newNoteFolder: '',
 };
 
 // ─── Folder autocomplete suggest ─────────────────────────────────
@@ -239,6 +245,45 @@ export class ArchiveSearchSettingTab extends PluginSettingTab {
                 this.display();
             })
         );
+
+        // ── Note creation ──
+
+        new Setting(containerEl).setName('Note creation').setHeading();
+
+        new Setting(containerEl)
+            .setName('New note location')
+            .setDesc(
+                'Where new notes are created from the "Create new note" action in search results.'
+            )
+            .addDropdown((drop) =>
+                drop
+                    .addOption('vault-root', 'Vault root')
+                    .addOption('custom', 'Custom folder')
+                    .setValue(this.plugin.settings.newNoteLocation)
+                    .onChange(async (value) => {
+                        this.plugin.settings.newNoteLocation = value as
+                            | 'vault-root'
+                            | 'custom';
+                        await this.plugin.saveSettings();
+                        this.display(); // re-render to show/hide folder picker
+                    })
+            );
+
+        if (this.plugin.settings.newNoteLocation === 'custom') {
+            new Setting(containerEl)
+                .setName('New note folder')
+                .setDesc('Folder path for new notes.')
+                .addSearch((search) => {
+                    search
+                        .setPlaceholder('Folder path...')
+                        .setValue(this.plugin.settings.newNoteFolder)
+                        .onChange(async (value) => {
+                            this.plugin.settings.newNoteFolder = value;
+                            await this.plugin.saveSettings();
+                        });
+                    new FolderSuggest(this.app, search.inputEl);
+                });
+        }
 
     }
 }

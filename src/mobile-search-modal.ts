@@ -11,7 +11,7 @@
  * Reuses SearchEngine and parseQuery — no duplicated logic.
  */
 
-import { App, Modal, Platform, setIcon } from 'obsidian';
+import { App, Modal, Platform, setIcon, normalizePath, Notice, MarkdownView } from 'obsidian';
 import type TheArchiveSearchPlugin from '../main';
 import { SearchResult } from './search-engine';
 
@@ -122,14 +122,17 @@ export class MobileSearchModal extends Modal {
     private renderResults(): void {
         this.resultListEl.empty();
 
-        if (this.results.length === 0) {
-            if (this.inputEl.value.trim()) {
-                this.resultListEl.createDiv({
-                    cls: 'mobile-search-empty',
-                    text: 'No results found',
-                });
-            }
+        const query = this.inputEl.value.trim();
+
+        if (this.results.length === 0 && !query) {
             return;
+        }
+
+        if (this.results.length === 0 && query) {
+            this.resultListEl.createDiv({
+                cls: 'mobile-search-empty',
+                text: 'No results found',
+            });
         }
 
         for (let i = 0; i < this.results.length; i++) {
@@ -160,6 +163,25 @@ export class MobileSearchModal extends Modal {
             // Tap to open
             itemEl.addEventListener('click', () => {
                 this.openResult(result);
+            });
+        }
+
+        // ── "Create new note" row (always last when query is non-empty) ──
+        if (query) {
+            const createEl = this.resultListEl.createDiv({
+                cls: 'mobile-search-result-item mobile-search-create-item',
+            });
+
+            const iconEl = createEl.createSpan({ cls: 'omnibar-create-icon' });
+            setIcon(iconEl, 'plus');
+
+            createEl.createSpan({
+                cls: 'omnibar-create-text',
+                text: `Create new note: "${query}"`,
+            });
+
+            createEl.addEventListener('click', () => {
+                this.createNote();
             });
         }
     }
@@ -223,6 +245,62 @@ export class MobileSearchModal extends Modal {
         }
         if (this.navForwardEl) {
             this.navForwardEl.toggleClass('is-disabled', this.navPos >= this.navStack.length - 1);
+        }
+    }
+
+    /**
+     * Create a new note using the current search query as the filename.
+     */
+    private async createNote(): Promise<void> {
+        const title = this.inputEl.value.trim();
+        if (!title) return;
+
+        // Build the file path based on settings
+        const settings = this.plugin.settings;
+        let folderPath = '';
+        if (settings.newNoteLocation === 'custom' && settings.newNoteFolder) {
+            folderPath = settings.newNoteFolder;
+        }
+
+        const filePath = normalizePath(
+            folderPath ? `${folderPath}/${title}.md` : `${title}.md`
+        );
+
+        // Duplicate guard: if the file already exists, just open it
+        const existing = this.app.vault.getFileByPath(filePath);
+        if (existing) {
+            this.close();
+            const leaf = this.app.workspace.getMostRecentLeaf();
+            if (leaf) {
+                await leaf.openFile(existing);
+            }
+            return;
+        }
+
+        try {
+            // Ensure the folder exists
+            if (folderPath) {
+                const folderExists = this.app.vault.getFolderByPath(normalizePath(folderPath));
+                if (!folderExists) {
+                    await this.app.vault.createFolder(normalizePath(folderPath));
+                }
+            }
+
+            const newFile = await this.app.vault.create(filePath, '');
+            this.close();
+            const leaf = this.app.workspace.getMostRecentLeaf();
+            if (leaf) {
+                await leaf.openFile(newFile);
+
+                // Focus the editor
+                setTimeout(() => {
+                    if (leaf.view instanceof MarkdownView) {
+                        leaf.view.editor.focus();
+                    }
+                }, 50);
+            }
+        } catch (err) {
+            new Notice(`Failed to create note: ${err}`);
         }
     }
 }

@@ -256,3 +256,68 @@
 	color: var(--text-faint);
 	font-size: 14px;
 }
+
+/* ─── Current note pinned row ─────────────────────────────────── */
+
+.omnibar-current-note-item {
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.omnibar-current-note-item.is-selected {
+	color: var(--text-normal);
+}
+
+.omnibar-current-note-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	color: var(--text-faint);
+}
+
+.omnibar-current-note-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* ─── Create new note row ─────────────────────────────────────── */
+
+.omnibar-create-item,
+.mobile-search-create-item {
+	color: var(--text-muted);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.omnibar-create-item:hover,
+.mobile-search-create-item:active {
+	color: var(--text-normal);
+}
+
+.omnibar-create-item.is-selected {
+	color: var(--text-normal);
+}
+
+.omnibar-create-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+}
+
+.omnibar-create-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.omnibar-create-text {
+	flex: 1;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
