@@ -74,25 +74,47 @@ On phones and tablets, the Omnibar opens as a full-screen search modal instead o
 
 You can also set it as your **pull-down Quick Action** under **Settings → Toolbar**.
 
+## Privacy & Data
+
+The Archive Search is **100% local**.
+
+- It never sends any data anywhere.
+- It does not phone home, collect analytics, or require an internet connection.
+- All indexing and searching happens entirely inside your vault on your device.
+- No external services, accounts, or API keys are used or required.
+
+This plugin exists to give you fast, private, keyboard-centric search — nothing more.
+
 ## Installation
 
-### Community plugins (not yet submitted)
+### From GitHub Releases (recommended for stability)
 
-This plugin isn't on the community plugin list yet. For now, install manually.
+1. Download the latest release assets (`main.js`, `manifest.json`, and `styles.css`) from the [Releases page](https://github.com/wScottSh/the-archive-search-obsidian-plugin/releases).
+2. In your vault, create the folder `.obsidian/plugins/the-archive-search/`.
+3. Copy the three files into that folder.
+4. Go to **Settings → Community plugins**, disable Safe mode if needed, and enable **The Archive Search**.
 
-### Manual
+### Using BRAT (for testing latest changes)
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/wScottSh/the-archive-search-obsidian-plugin/releases)
-2. Create a folder: `<your vault>/.obsidian/plugins/the-archive-search/`
-3. Copy the three files into that folder
-4. Open Obsidian → Settings → Community plugins → enable "The Archive Search"
-
-### BRAT
-
-Install via [BRAT](https://github.com/TfTHacker/obsidian42-brat) using this repo URL:
+Install via [BRAT](https://github.com/TfTHacker/obsidian42-brat) using this repository URL:
 ```
 wScottSh/the-archive-search-obsidian-plugin
 ```
+
+> **Note:** This plugin is not yet listed in the official Obsidian Community Plugins directory. Once it is submitted and approved, it will be installable directly from Obsidian's plugin browser.
+
+### Building from source
+
+If you want to build the plugin yourself:
+
+```bash
+git clone https://github.com/wScottSh/the-archive-search-obsidian-plugin.git
+cd the-archive-search-obsidian-plugin
+npm install
+npm run build
+```
+
+Then copy the generated `main.js`, `manifest.json`, and `styles.css` into your vault's plugin folder as described above.
 
 ## Background
 

@@ -8,9 +8,15 @@
 # npm
 node_modules
 
-# Don't include the compiled main.js file in the repo.
-# They should be uploaded to GitHub releases instead.
+# Don't include compiled build artifacts in the repo.
+# Per official Obsidian plugin best practices (obsidian-sample-plugin + major plugins),
+# main.js must be built from source and attached only to GitHub Releases.
 main.js
+
+# Common build / output directories
+dist/
+build/
+out/
 
 # Exclude sourcemaps
 *.map
@@ -20,3 +26,11 @@ data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+
+# Environment & secrets
+.env
+.env.local
+
+# Editor / OS junk
+*.swp
+*~

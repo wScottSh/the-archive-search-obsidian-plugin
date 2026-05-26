@@ -46,6 +46,9 @@ export class OmnibarView extends ItemView {
     private selectedIndices: Set<number> = new Set();
     private lastClickedIndex = -1;
 
+    /** When the current query exactly matches a filename, lock highlighting to the full filename only. */
+    private exactFilenameTerm: string | null = null;
+
     // Navigation stack
     private navStack: NavEntry[] = [];
     private navPos = -1; // current position in the stack
@@ -168,6 +171,27 @@ export class OmnibarView extends ItemView {
     }
 
     /**
+     * Detect whether the current (bare) query exactly matches a filename in results,
+     * and if so, capture the original-case filename for exclusive highlighting.
+     */
+    private detectExactFilenameTerm(): void {
+        this.exactFilenameTerm = null;
+        const query = this.inputEl.value;
+        const queryTrimmed = query.trim();
+        if (!queryTrimmed || query.startsWith('"')) {
+            return;
+        }
+        const queryLower = queryTrimmed.toLowerCase();
+        const exactIdx = this.results.findIndex((r) => {
+            const nameNoExt = r.filename.replace(/\.md$/i, '').toLowerCase();
+            return nameNoExt === queryLower;
+        });
+        if (exactIdx !== -1) {
+            this.exactFilenameTerm = this.results[exactIdx].filename;
+        }
+    }
+
+    /**
      * Execute a search based on the current input value.
      */
     private executeSearch(): void {
@@ -176,17 +200,24 @@ export class OmnibarView extends ItemView {
         this.selectedIndex = 0; // Points to current-note row (no file switch)
         this.selectedIndices.clear(); // New search clears multi-select
 
-        // If the query exactly matches a filename, auto-select that result
-        if (query.trim()) {
-            const queryLower = query.trim().toLowerCase();
-            const exactIdx = this.results.findIndex((r) => {
-                // Match against filename without extension
+        // Detect exact filename match from the bare query results (for highlighting mode)
+        this.detectExactFilenameTerm();
+
+        // If the query exactly matches a filename, re-search with the query
+        // wrapped in quotes for exact phrase matching (narrows results)
+        const queryTrimmed = query.trim();
+        if (queryTrimmed && !query.startsWith('"') && this.exactFilenameTerm) {
+            this.results = this.plugin.searchEngine.search(`"${queryTrimmed}"`);
+            // Re-find the exact match index in the new (phrase) results
+            const queryLower = queryTrimmed.toLowerCase();
+            const reIdx = this.results.findIndex((r) => {
                 const nameNoExt = r.filename.replace(/\.md$/i, '').toLowerCase();
                 return nameNoExt === queryLower;
             });
-            if (exactIdx !== -1) {
-                this.selectedIndex = exactIdx + this.offset;
+            if (reIdx !== -1) {
+                this.selectedIndex = reIdx + this.offset;
             }
+            // exactFilenameTerm stays set for the lifetime of this query
         }
 
         this.renderResults();
@@ -202,7 +233,7 @@ export class OmnibarView extends ItemView {
         }
 
         // Push to nav stack (unless we're navigating back/forward)
-        if (!this.navigating && query.trim()) {
+        if (!this.navigating && queryTrimmed) {
             this.pushNavState();
         }
     }
@@ -459,18 +490,24 @@ export class OmnibarView extends ItemView {
             // Highlight search terms in the editor
             const query = this.inputEl.value.trim();
             if (query && this.plugin.settings.highlightMatches) {
-                const off = this.offset;
-                const selectedFilename: string | null = (
-                    this.selectedIndex >= off && this.selectedIndex < off + this.results.length
-                ) ? this.results[this.selectedIndex - off].filename : null;
+                let terms: string[];
+                if (this.exactFilenameTerm) {
+                    // Exact filename query (e.g. triggered from inside [[link]]): always highlight only the full filename
+                    terms = [this.exactFilenameTerm];
+                } else {
+                    const off = this.offset;
+                    const selectedFilename: string | null = (
+                        this.selectedIndex >= off && this.selectedIndex < off + this.results.length
+                    ) ? this.results[this.selectedIndex - off].filename : null;
 
-                const queryLower = query.toLowerCase();
-                const isExactMatch = selectedFilename
-                    && selectedFilename.replace(/\.md$/i, '').toLowerCase() === queryLower;
+                    const queryLower = query.toLowerCase();
+                    const isExactMatch = selectedFilename
+                        && selectedFilename.replace(/\.md$/i, '').toLowerCase() === queryLower;
 
-                const terms: string[] = isExactMatch
-                    ? [selectedFilename]
-                    : extractSearchTerms(parseQuery(query));
+                    terms = isExactMatch
+                        ? [selectedFilename]
+                        : extractSearchTerms(parseQuery(query));
+                }
 
                 if (terms.length > 0) {
                     setTimeout(() => {
@@ -533,12 +570,17 @@ export class OmnibarView extends ItemView {
 
                 // Move cursor to first match
                 if (query) {
-                    const ast = parseQuery(query);
-                    const terms = extractSearchTerms(ast);
-                    if (terms.length > 0) {
+                    let jumpTerms: string[];
+                    if (this.exactFilenameTerm) {
+                        jumpTerms = [this.exactFilenameTerm];
+                    } else {
+                        const ast = parseQuery(query);
+                        jumpTerms = extractSearchTerms(ast);
+                    }
+                    if (jumpTerms.length > 0) {
                         const docText = editor.getValue().toLowerCase();
                         let firstPos = Infinity;
-                        for (const term of terms) {
+                        for (const term of jumpTerms) {
                             const pos = docText.indexOf(term.toLowerCase());
                             if (pos !== -1 && pos < firstPos) {
                                 firstPos = pos;
@@ -652,6 +694,17 @@ export class OmnibarView extends ItemView {
         this.navigating = true;
         this.inputEl.value = entry.query;
         this.results = this.plugin.searchEngine.search(entry.query);
+        this.detectExactFilenameTerm();
+
+        // If this was an exact filename query, re-apply phrase search for consistent result list
+        // (selectedIndex was originally captured against the promoted list)
+        if (this.exactFilenameTerm) {
+            const qTrim = entry.query.trim();
+            if (qTrim) {
+                this.results = this.plugin.searchEngine.search(`"${qTrim}"`);
+            }
+        }
+
         const maxIdx = this.offset + this.results.length - 1;
         this.selectedIndex = Math.min(entry.selectedIndex, Math.max(0, maxIdx));
         this.renderResults();

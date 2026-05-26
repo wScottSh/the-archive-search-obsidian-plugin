@@ -1,6 +1,6 @@
 {
 	"name": "the-archive-search-obsidian-plugin",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Obsidian plugin replicating The Archive's Omnibar search with boolean queries, wiki-link-as-search, and note creation.",
 	"main": "main.js",
 	"scripts": {
