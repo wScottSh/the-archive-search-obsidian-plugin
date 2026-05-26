@@ -459,8 +459,19 @@ export class OmnibarView extends ItemView {
             // Highlight search terms in the editor
             const query = this.inputEl.value.trim();
             if (query && this.plugin.settings.highlightMatches) {
-                const ast = parseQuery(query);
-                const terms = extractSearchTerms(ast);
+                const off = this.offset;
+                const selectedFilename: string | null = (
+                    this.selectedIndex >= off && this.selectedIndex < off + this.results.length
+                ) ? this.results[this.selectedIndex - off].filename : null;
+
+                const queryLower = query.toLowerCase();
+                const isExactMatch = selectedFilename
+                    && selectedFilename.replace(/\.md$/i, '').toLowerCase() === queryLower;
+
+                const terms: string[] = isExactMatch
+                    ? [selectedFilename]
+                    : extractSearchTerms(parseQuery(query));
+
                 if (terms.length > 0) {
                     setTimeout(() => {
                         const editorView = this.getEditorViewFromLeaf(leaf);
