@@ -9,6 +9,7 @@
 
 import { App, TFile, TAbstractFile, debounce } from 'obsidian';
 import { parseQuery, SearchNode } from './parser';
+import { extractSearchTerms } from './editor-highlight';
 import type { SortOrder, ArchiveSearchSettings } from './settings';
 
 // ─── Index Entry ─────────────────────────────────────────────────
@@ -26,6 +27,7 @@ export interface SearchResult {
     file: TFile;
     filename: string;         // original-case basename
     matchInFilename: boolean; // true if any search term matched in the filename
+    snippet?: string;
 }
 
 // ─── Search Engine ───────────────────────────────────────────────
@@ -185,6 +187,7 @@ export class SearchEngine {
 
         const results: SearchResult[] = [];
         const queryLower = query.toLowerCase();
+        const positiveTerms = extractSearchTerms(ast);
 
         for (const entry of this.index.values()) {
             if (this.evaluate(ast, entry)) {
@@ -192,6 +195,7 @@ export class SearchEngine {
                     file: entry.file,
                     filename: entry.rawFilename,
                     matchInFilename: entry.filename.includes(queryLower),
+                    snippet: this.extractSnippet(entry, positiveTerms),
                 });
             }
         }
@@ -266,5 +270,34 @@ export class SearchEngine {
             case 'NOT':
                 return !this.evaluate(node.operand, entry);
         }
+    }
+
+    // ─── Snippet Production ──────────────────────────────────────────
+
+    private extractSnippet(entry: IndexEntry, terms: string[]): string | undefined {
+        if (terms.length === 0) return undefined;
+        const content = entry.content;
+        let firstPos = -1;
+        let matchLen = 0;
+        for (const term of terms) {
+            const t = term.toLowerCase();
+            if (!t) continue;
+            const pos = content.indexOf(t);
+            if (pos !== -1 && (firstPos === -1 || pos < firstPos)) {
+                firstPos = pos;
+                matchLen = t.length;
+            }
+        }
+        if (firstPos === -1) return undefined;
+        const windowSize = 100;
+        const half = Math.floor(windowSize / 2);
+        let start = Math.max(0, firstPos - half);
+        let end = Math.min(content.length, firstPos + matchLen + half);
+        let inner = content.substring(start, end).trim();
+        let snippet = inner;
+        if (start > 0) snippet = inner ? '... ' + inner : '...';
+        if (end < content.length) snippet = snippet ? snippet + '...' : '...';
+        snippet = snippet.replace(/\.{3,}/g, '...');
+        return snippet || undefined;
     }
 }

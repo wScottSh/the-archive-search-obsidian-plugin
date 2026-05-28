@@ -11,9 +11,13 @@
  * Reuses SearchEngine and parseQuery — no duplicated logic.
  */
 
-import { App, Modal, Platform, setIcon, normalizePath, Notice, MarkdownView } from 'obsidian';
+import { App, Modal, Platform, setIcon, normalizePath, Notice, MarkdownView, WorkspaceLeaf } from 'obsidian';
 import type TheArchiveSearchPlugin from '../main';
 import { SearchResult } from './search-engine';
+
+import { parseQuery } from './parser';
+import { extractSearchTerms, highlightInEditor } from './editor-highlight';
+import { EditorView } from '@codemirror/view';
 
 interface NavEntry {
     query: string;
@@ -160,6 +164,13 @@ export class MobileSearchModal extends Modal {
                 });
             }
 
+            if (this.plugin.settings.showMobilePreviews && result.snippet) {
+                itemEl.createDiv({
+                    cls: 'mobile-search-result-snippet',
+                    text: result.snippet,
+                });
+            }
+
             // Tap to open
             itemEl.addEventListener('click', () => {
                 this.openResult(result);
@@ -189,12 +200,41 @@ export class MobileSearchModal extends Modal {
     // ── Open Result ──
 
     private async openResult(result: SearchResult): Promise<void> {
-        // Close the modal first so the file opens in the main editor
+        const query = this.inputEl.value.trim();
         this.close();
 
         const leaf = this.app.workspace.getMostRecentLeaf();
         if (leaf && result.file) {
             await leaf.openFile(result.file);
+            setTimeout(() => {
+                if (leaf?.view instanceof MarkdownView) {
+                    const editor = leaf.view.editor;
+                    const editorView = this.getEditorViewFromLeaf(leaf);
+                    if (query) {
+                        const ast = parseQuery(query);
+                        const terms = extractSearchTerms(ast);
+                        if (terms.length > 0) {
+                            if (this.plugin.settings.highlightMatches && editorView) {
+                                highlightInEditor(editorView, terms);
+                            }
+                            const docText = editor.getValue().toLowerCase();
+                            let firstPos = Infinity;
+                            for (const term of terms) {
+                                const pos = docText.indexOf(term.toLowerCase());
+                                if (pos !== -1 && pos < firstPos) {
+                                    firstPos = pos;
+                                }
+                            }
+                            if (firstPos !== Infinity) {
+                                const editorPos = editor.offsetToPos(firstPos);
+                                editor.setCursor(editorPos);
+                            }
+                        }
+                    }
+                    this.app.workspace.setActiveLeaf(leaf, { focus: true });
+                    editor.focus();
+                }
+            }, 120);
         }
     }
 
@@ -246,6 +286,17 @@ export class MobileSearchModal extends Modal {
         if (this.navForwardEl) {
             this.navForwardEl.toggleClass('is-disabled', this.navPos >= this.navStack.length - 1);
         }
+    }
+
+    private getEditorViewFromLeaf(leaf?: WorkspaceLeaf | null): EditorView | null {
+        const targetLeaf = leaf ?? this.app.workspace.getMostRecentLeaf();
+        if (targetLeaf?.view instanceof MarkdownView) {
+            const editor = (targetLeaf.view as any)?.editor;
+            if (editor?.cm instanceof EditorView) {
+                return editor.cm;
+            }
+        }
+        return null;
     }
 
     /**

@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { SearchEngine, IndexEntry } from '../src/search-engine';
 import { parseQuery, SearchNode } from '../src/parser';
+import { extractSearchTerms } from '../src/editor-highlight';
 import { TFile } from 'obsidian';
 
 // ─── Test Helpers ────────────────────────────────────────────────
@@ -122,5 +123,91 @@ describe('SearchEngine.evaluate', () => {
             expect(matches('foo (bar OR baz)', 'file', 'foo baz')).toBe(true);
             expect(matches('foo (bar OR baz)', 'file', 'foo only')).toBe(false);
         });
+    });
+});
+
+// ─── Snippet Extraction Tests ────────────────────────────────────
+
+describe('SearchEngine snippet extraction', () => {
+    function createEngine() {
+        return new (SearchEngine as any)(
+            { vault: { getMarkdownFiles: () => [] } },
+            { sortOrder: 'a-z', excludedFolders: [], respectObsidianExcluded: false }
+        );
+    }
+
+    function getSnippet(query: string, filename: string, content: string): string | undefined {
+        const ast = parseQuery(query);
+        const terms = ast ? extractSearchTerms(ast) : [];
+        const entry = mockEntry(filename, content);
+        return (createEngine() as any).extractSnippet(entry, terms);
+    }
+
+    it('produces snippet for simple word match', () => {
+        const snip = getSnippet('art', 'f', 'this is the art of war and much longer text here to pad beyond the window size with extra filler content');
+        expect(snip).toBeDefined();
+        expect(snip).toContain('art');
+        expect(snip!.length).toBeLessThanOrEqual(120);
+    });
+
+    it('produces snippet for phrase match', () => {
+        const snip = getSnippet('"hello world"', 'f', 'say hello world today followed by padding text to trigger truncation ellipsis in the window');
+        expect(snip).toBeDefined();
+        expect(snip).toContain('hello world');
+    });
+
+    it('produces snippet for AND query using first positive term', () => {
+        const snip = getSnippet('foo bar', 'f', 'zzz bar early then foo later with lots of padding text to fill the snippet window area here');
+        expect(snip).toBeDefined();
+        expect(snip).toContain('foo');
+    });
+
+    it('produces snippet for OR query', () => {
+        const snip = getSnippet('foo OR bar', 'f', 'only the bar term appears in this long content string with padding padding padding padding');
+        expect(snip).toBeDefined();
+        expect(snip).toContain('bar');
+    });
+
+    it('ignores NOT branches for snippet selection', () => {
+        const content = 'bar appears first in the text then foo appears much later with padding to separate';
+        const snip = getSnippet('foo !bar', 'f', content);
+        expect(snip).toBeDefined();
+        expect(snip).toContain('foo');
+        expect(snip!.indexOf('foo')).toBeLessThan(snip!.length - 5);
+    });
+
+    it('empty query returns result without snippet', () => {
+        const snip = getSnippet('', 'f', 'some content here');
+        expect(snip).toBeUndefined();
+    });
+
+    it('pure NOT query returns no snippet', () => {
+        const snip = getSnippet('!bar', 'f', 'hello world no bar');
+        expect(snip).toBeUndefined();
+    });
+
+    it('no snippet when positive terms only match filename not content', () => {
+        const snip = getSnippet('foo', 'myfoo', 'content without the term at all here with padding');
+        expect(snip).toBeUndefined();
+    });
+
+    it('search() populates snippet for matching results', () => {
+        const engine = createEngine();
+        const entry = mockEntry('note1', 'this note has the special keyword inside its long body text with enough padding characters here');
+        (engine as any).index.set('/note1.md', entry);
+        const results = engine.search('special');
+        expect(results.length).toBe(1);
+        expect(results[0].snippet).toBeDefined();
+        expect(results[0].snippet).toContain('special');
+        expect(results[0]).toHaveProperty('snippet');
+    });
+
+    it('allFilesSorted returns results without snippets', () => {
+        const engine = createEngine();
+        const entry = mockEntry('note2', 'foo bar baz');
+        (engine as any).index.set('/note2.md', entry);
+        const results = (engine as any).allFilesSorted();
+        expect(results.length).toBe(1);
+        expect(results[0].snippet).toBeUndefined();
     });
 });

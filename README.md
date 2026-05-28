@@ -55,15 +55,17 @@ Wiki-links become search queries: clicking `[[some topic]]` doesn't open a file 
 | Intercept wiki-links | On | `[[links]]` trigger searches instead of opening files |
 | Excluded folders | — | Folders to skip (with autocomplete picker) |
 | Respect Obsidian excluded files | On | Also honor Settings → Files & Links → Excluded files |
+| Show content previews on mobile | On | Display short match snippets under results in the mobile search modal (phones and tablets only) |
 
 ## Mobile
 
 On phones and tablets, the Omnibar opens as a full-screen search modal instead of a sidebar pane.
 
-- **Tap a result** to open the note
+- **Tap a result** to open the note (with rich landing: highlights + cursor at first match)
 - **Wiki-links and hashtags** route to the modal automatically
 - **Real-time filtering** works the same as desktop — results update on every keystroke
 - **Back/forward navigation** is preserved via header buttons
+- **Content previews** (enabled by default): short match snippets appear under each result so you can preview context without leaving the modal. Controlled by the "Show content previews on mobile" setting. Variable-height rows stay comfortable and touch-friendly (0, 1, or 2 snippet lines).
 
 ### Adding to your mobile toolbar
 

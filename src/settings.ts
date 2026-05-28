@@ -50,6 +50,8 @@ export interface ArchiveSearchSettings {
     showRibbonIcon: boolean;
     /** Respect Obsidian's native excluded files setting */
     respectObsidianExcluded: boolean;
+    /** Show content previews (snippets) in the mobile search modal */
+    showMobilePreviews: boolean;
     /** Plugin-specific folder exclusions */
     excludedFolders: string[];
     /** Where to create new notes from the omnibar */
@@ -65,6 +67,7 @@ export const DEFAULT_SETTINGS: ArchiveSearchSettings = {
     omnibarPosition: 'right',
     showRibbonIcon: true,
     respectObsidianExcluded: true,
+    showMobilePreviews: true,
     excludedFolders: [],
     newNoteLocation: 'vault-root',
     newNoteFolder: '',
@@ -284,6 +287,22 @@ export class ArchiveSearchSettingTab extends PluginSettingTab {
                     new FolderSuggest(this.app, search.inputEl);
                 });
         }
+
+        new Setting(containerEl).setName('Mobile').setHeading();
+
+        new Setting(containerEl)
+            .setName('Show content previews on mobile')
+            .setDesc(
+                'Display short match snippets under results in the mobile search modal. Only affects phones and tablets.'
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.showMobilePreviews)
+                    .onChange(async (value) => {
+                        this.plugin.settings.showMobilePreviews = value;
+                        await this.plugin.saveSettings();
+                    })
+            );
 
     }
 }
