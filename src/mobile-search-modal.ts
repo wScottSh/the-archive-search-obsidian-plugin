@@ -78,7 +78,8 @@ export class MobileSearchModal extends Modal {
 
         // ── Session ──
         const workspace = new ObsidianWorkspace(this.app, () => this.plugin.settings);
-        this.session = new SearchSession(this.plugin.searchEngine, workspace);
+        this.plugin.mobileSession ??= new SearchSession(this.plugin.searchEngine, workspace);
+        this.session = this.plugin.mobileSession;
         this.unsubscribe = this.session.subscribe(() => this.render());
         this.inputEl.addEventListener('input', () => this.session.setQuery(this.inputEl.value));
         this.session.open(workspace.currentFile(), this.initialQuery);
@@ -157,6 +158,7 @@ export class MobileSearchModal extends Modal {
         const showEmpty = query.trim() !== '' && !rows.some((row) => row.kind === 'result');
 
         this.resultListEl.empty();
+        if (query.trim() === '') this.renderRecents();
         rows.forEach((row, index) => {
             if (row.kind === 'create' && showEmpty) {
                 this.resultListEl.createDiv({ cls: 'mobile-search-empty', text: 'No notes match' });
@@ -167,6 +169,18 @@ export class MobileSearchModal extends Modal {
         // The list is anchored to the thumb end; a new query starts there
         if (query !== this.renderedQuery) this.resultListEl.scrollTop = 0;
         this.renderedQuery = query;
+    }
+
+    /** Recent-query chips; first in the bottom-up list, so nearest the thumb. */
+    private renderRecents(): void {
+        const recents = this.session.recents();
+        if (recents.length === 0) return;
+        const chipsEl = this.resultListEl.createDiv({ cls: 'mobile-search-recents' });
+        for (const recent of recents) {
+            const chipEl = chipsEl.createEl('button', { cls: 'mobile-search-chip', text: recent });
+            chipEl.addEventListener('mousedown', (e) => e.preventDefault());
+            chipEl.addEventListener('click', () => this.session.setQuery(recent));
+        }
     }
 
     private renderRow(row: Row, index: number, terms: string[]): void {
