@@ -165,10 +165,14 @@ export class MobileSearchModal extends Modal {
             }
 
             if (this.plugin.settings.showMobilePreviews && result.snippet) {
-                itemEl.createDiv({
-                    cls: 'mobile-search-result-snippet',
-                    text: result.snippet,
-                });
+                const snippetEl = itemEl.createDiv({ cls: 'mobile-search-result-snippet' });
+                for (const piece of result.snippet) {
+                    if (piece.hit) {
+                        snippetEl.createSpan({ cls: 'mobile-search-snippet-hit', text: piece.text });
+                    } else {
+                        snippetEl.appendText(piece.text);
+                    }
+                }
             }
 
             // Tap to open
