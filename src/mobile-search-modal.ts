@@ -138,7 +138,7 @@ export class MobileSearchModal extends Modal {
         this.inputEl.addEventListener('input', () => this.session.setQuery(this.inputEl.value));
         this.session.open(workspace.currentFile(), this.initialQuery);
         // A note deleted or renamed through Actions must leave the list
-        this.stopWatchingNotes = this.plugin.searchEngine.onNoteRemoved(() => this.session.refresh());
+        this.stopWatchingNotes = this.plugin.searchEngine.onNoteRemoved((deleted) => this.session.refresh(deleted));
 
         this.stopTrackingKeyboard = trackKeyboard(modalEl);
 

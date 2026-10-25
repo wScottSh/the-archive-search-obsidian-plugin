@@ -285,11 +285,21 @@ describe('SearchSession refresh', () => {
         const { session, engine, files } = await setup(NOTES);
         session.open(null);
         session.toggleSelect(0);
-        engine.onNoteRemoved(() => session.refresh());
+        engine.onNoteRemoved((deleted) => session.refresh(deleted));
         engine.getEventRefs().onDelete(files.Apple);
         expect(shape(session)).toEqual(['Banana', 'Cherry']);
         expect(session.isSelecting).toBe(false);
         expect(session.selectionCount).toBe(0);
+    });
+
+    it('unpins the current note when it is the one deleted', async () => {
+        const { session, engine, files } = await setup(NOTES);
+        session.open(files.Banana);
+        engine.onNoteRemoved((deleted) => session.refresh(deleted));
+        engine.getEventRefs().onDelete(files.Apple);
+        expect(shape(session)).toEqual(['current', 'Banana', 'Cherry']);
+        engine.getEventRefs().onDelete(files.Banana);
+        expect(shape(session)).toEqual(['Cherry']);
     });
 });
 

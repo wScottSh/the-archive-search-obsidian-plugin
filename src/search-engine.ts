@@ -91,7 +91,7 @@ export class SearchEngine {
     private settings: ArchiveSearchSettings;
     private index: Map<string, IndexEntry> = new Map();
     private _ready = false;
-    private removalListeners = new Set<() => void>();
+    private removalListeners = new Set<(deleted: TAbstractFile | null) => void>();
 
     constructor(app: App, settings: ArchiveSearchSettings) {
         this.app = app;
@@ -172,17 +172,18 @@ export class SearchEngine {
 
     /**
      * Call `fn` once the index has caught up with a deleted or renamed note,
-     * so an open list can drop the stale row. Returns an unsubscribe.
+     * so an open list can drop the stale row. `deleted` is the deleted file,
+     * or null for a rename. Returns an unsubscribe.
      */
-    onNoteRemoved(fn: () => void): () => void {
+    onNoteRemoved(fn: (deleted: TAbstractFile | null) => void): () => void {
         this.removalListeners.add(fn);
         return () => {
             this.removalListeners.delete(fn);
         };
     }
 
-    private noteRemoved(): void {
-        this.removalListeners.forEach((fn) => fn());
+    private noteRemoved(deleted: TAbstractFile | null): void {
+        this.removalListeners.forEach((fn) => fn(deleted));
     }
 
     /**
@@ -215,7 +216,7 @@ export class SearchEngine {
             onModify: debouncedModify,
             onDelete: (file: TAbstractFile) => {
                 this.index.delete(file.path);
-                this.noteRemoved();
+                this.noteRemoved(file);
             },
             onRename: async (file: TAbstractFile, oldPath: string) => {
                 this.index.delete(oldPath);
@@ -224,7 +225,7 @@ export class SearchEngine {
                         await this.indexFile(file);
                     }
                 }
-                this.noteRemoved();
+                this.noteRemoved(null);
             },
         };
     }

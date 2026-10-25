@@ -6,7 +6,7 @@
  * Obsidian only through the `Workspace` seam, so tests can swap in a recorder.
  */
 
-import type { TFile } from 'obsidian';
+import type { TAbstractFile, TFile } from 'obsidian';
 import type { SearchResult } from './search-engine';
 import { parseQuery } from './parser';
 import { extractSearchTerms } from './editor-highlight';
@@ -103,8 +103,12 @@ export class SearchSession {
         this.emit();
     }
 
-    /** Rerun the query against a changed index, e.g. after a note was deleted. Drops the selection. */
-    refresh(): void {
+    /**
+     * Rerun the query against a changed index, e.g. after a note was deleted,
+     * unpinning the current note if it was the one deleted. Drops the selection.
+     */
+    refresh(deleted: TAbstractFile | null = null): void {
+        if (deleted && deleted === this.currentNote) this.currentNote = null;
         this.search();
         this.emit();
     }
