@@ -6,6 +6,7 @@
  *   the pinned current note right above the capsule, results reading upward
  * - Search capsule docked to the bottom edge, riding on the keyboard
  *   (back/forward, input, clear, close)
+ * - Go on the keyboard opens the marked row (an exact title marks its note)
  * - Tapping a row opens the note at its first match and closes search
  */
 
@@ -66,6 +67,14 @@ export class MobileSearchModal extends Modal {
             type: 'text',
             placeholder: 'Search...',
             cls: 'mobile-search-input',
+        });
+        // The keyboard's action key reads Go and opens the marked row
+        this.inputEl.enterKeyHint = 'go';
+        this.inputEl.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+            e.preventDefault();
+            this.session.land();
+            this.close();
         });
 
         this.clearEl = this.createIconButton(capsuleEl, 'x-circle', 'Clear', () => {
@@ -172,6 +181,7 @@ export class MobileSearchModal extends Modal {
     private renderRow(row: Row, index: number, terms: string[]): void {
         const cls = `mobile-search-row mobile-search-row-${row.kind}`;
         const rowEl = this.resultListEl.createDiv({ cls });
+        if (index === this.session.active) rowEl.addClass('is-active');
         rowEl.addEventListener('click', () => {
             this.session.land(index);
             this.close();
