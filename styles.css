@@ -324,6 +324,10 @@
 	background: var(--background-modifier-hover);
 }
 
+.mobile-search-results .mobile-search-row.is-active {
+	background: var(--background-modifier-hover);
+}
+
 .mobile-search-row-title {
 	flex: 1;
 	min-width: 0;

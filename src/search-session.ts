@@ -54,6 +54,8 @@ export class SearchSession {
     private results: SearchResult[] = [];
     private currentNote: TFile | null = null;
     private activeIndex = 0;
+    /** Title of the note the query names exactly; highlighting is locked to it. */
+    private exactTitle: string | null = null;
     private history: HistoryEntry[] = [];
     private historyPos = -1;
     private listeners = new Set<() => void>();
@@ -102,8 +104,9 @@ export class SearchSession {
         return this.activeIndex;
     }
 
-    /** Words to highlight for a row: the query's positive terms. */
+    /** Words to highlight for a row: the whole title when the query names a note exactly, else the query's positive terms. */
     terms(_index = this.activeIndex): string[] {
+        if (this.exactTitle) return [this.exactTitle];
         return extractSearchTerms(parseQuery(this.query.trim()));
     }
 
@@ -173,9 +176,31 @@ export class SearchSession {
         }
     }
 
+    /**
+     * A bare query equal to a note's title (case-insensitive) narrows to a phrase
+     * search and marks that note, as the desktop omnibar does. A leading quote opts out.
+     */
+    private promoteExactTitle(): void {
+        const title = this.query.trim();
+        if (!title || this.query.startsWith('"')) return;
+        const isExact = (r: SearchResult) => r.filename.toLowerCase() === title.toLowerCase();
+        if (!this.results.some(isExact)) return;
+
+        this.results = this.engine.search(`"${title}"`);
+        const index = this.results.findIndex(isExact);
+        if (index === -1) {
+            this.results = this.engine.search(this.query);
+            return;
+        }
+        this.exactTitle = this.results[index].filename;
+        this.activeIndex = index + (this.currentNote ? 1 : 0);
+    }
+
     private run(record: boolean): void {
         this.results = this.engine.search(this.query);
         this.activeIndex = 0;
+        this.exactTitle = null;
+        this.promoteExactTitle();
         if (record && this.query.trim()) this.pushHistory();
         this.emit();
     }

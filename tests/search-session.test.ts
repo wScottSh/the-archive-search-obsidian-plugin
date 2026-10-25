@@ -108,10 +108,10 @@ describe('SearchSession rows', () => {
 describe('SearchSession activate and land', () => {
     it('activate previews the row without landing', async () => {
         const { session, calls, files } = await setup(NOTES);
-        session.open(null, 'apple');
+        session.open(null, 'appl');
         session.activate(1);
         expect(session.active).toBe(1);
-        expect(calls).toEqual([{ method: 'preview', file: files.Cherry, terms: ['apple'] }]);
+        expect(calls).toEqual([{ method: 'preview', file: files.Cherry, terms: ['appl'] }]);
     });
 
     it('activate on the create row previews nothing', async () => {
@@ -130,16 +130,16 @@ describe('SearchSession activate and land', () => {
 
     it('land opens the row with the query terms', async () => {
         const { session, calls, files } = await setup(NOTES);
-        session.open(null, 'apple');
+        session.open(null, 'appl');
         session.land(0);
-        expect(calls).toEqual([{ method: 'land', file: files.Apple, terms: ['apple'] }]);
+        expect(calls).toEqual([{ method: 'land', file: files.Apple, terms: ['appl'] }]);
     });
 
     it('land on the current row lands the current note', async () => {
         const { session, calls, files } = await setup(NOTES);
-        session.open(files.Banana, 'apple');
+        session.open(files.Banana, 'appl');
         session.land(0);
-        expect(calls).toEqual([{ method: 'land', file: files.Banana, terms: ['apple'] }]);
+        expect(calls).toEqual([{ method: 'land', file: files.Banana, terms: ['appl'] }]);
     });
 
     it('land on the create row creates the note', async () => {
@@ -151,11 +151,11 @@ describe('SearchSession activate and land', () => {
 
     it('land defaults to the active row', async () => {
         const { session, calls, files } = await setup(NOTES);
-        session.open(null, 'apple');
+        session.open(null, 'appl');
         session.activate(1);
         calls.length = 0;
         session.land();
-        expect(calls).toEqual([{ method: 'land', file: files.Cherry, terms: ['apple'] }]);
+        expect(calls).toEqual([{ method: 'land', file: files.Cherry, terms: ['appl'] }]);
     });
 });
 
@@ -170,6 +170,62 @@ describe('SearchSession terms', () => {
         const { session } = await setup(NOTES);
         session.open(null);
         expect(session.terms()).toEqual([]);
+    });
+});
+
+describe('SearchSession exact title', () => {
+    const NOTES2 = { ...NOTES, 'Apple Pie': 'Apple pie recipe' };
+
+    it('marks the note and narrows to a phrase search', async () => {
+        const { session, files } = await setup(NOTES2);
+        session.open(files.Banana, 'apple');
+        expect(shape(session)).toEqual(['current', 'Apple', 'Apple Pie', 'Cherry', 'create']);
+        expect(session.active).toBe(1);
+
+        session.setQuery('  APPLE PIE ');
+        expect(shape(session)).toEqual(['current', 'Apple Pie', 'create']);
+        expect(session.active).toBe(1);
+    });
+
+    it('marks row 0 when no note is pinned', async () => {
+        const { session } = await setup(NOTES2);
+        session.open(null, 'apple pie');
+        expect(session.active).toBe(0);
+    });
+
+    it('does not mark without an exact title', async () => {
+        const { session } = await setup(NOTES2);
+        session.open(null, 'appl');
+        expect(session.active).toBe(0);
+        expect(session.terms()).toEqual(['appl']);
+    });
+
+    it('Go lands the marked row, highlighting only the title', async () => {
+        const { session, calls, files } = await setup(NOTES2);
+        session.open(files.Banana, 'Apple Pie');
+        session.land();
+        expect(calls).toEqual([{ method: 'land', file: files['Apple Pie'], terms: ['Apple Pie'] }]);
+    });
+
+    it('highlights the whole title rather than the query words', async () => {
+        const { session } = await setup(NOTES2);
+        session.open(null, 'apple pie');
+        expect(session.terms()).toEqual(['Apple Pie']);
+    });
+
+    it('skips promotion when the query starts with a quote', async () => {
+        const { session, files } = await setup({ ...NOTES2, '"Quoted"': 'x' });
+        session.open(files.Banana, '"quoted"');
+        expect(session.active).toBe(0);
+        expect(session.terms()).toEqual(['quoted']);
+    });
+
+    it('drops the mark when the query stops matching exactly', async () => {
+        const { session } = await setup(NOTES2);
+        session.open(null, 'apple pie');
+        session.setQuery('apple pi');
+        expect(session.active).toBe(0);
+        expect(session.terms()).toEqual(['apple', 'pi']);
     });
 });
 
