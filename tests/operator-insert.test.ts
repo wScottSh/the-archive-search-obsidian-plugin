@@ -44,6 +44,8 @@ describe('insertOperator', () => {
         // tag
         ['|', 'tag', '#|'],
         ['foo |', 'tag', 'foo #|'],
+        ['foo|', 'tag', 'foo #|'],
+        ['(|', 'tag', '(#|'],
         ['foo [bar]', 'tag', 'foo #bar|'],
     ];
 

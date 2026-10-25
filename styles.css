@@ -274,10 +274,10 @@ body:not(.is-phone) .modal-container.mobile-search-container .modal.mobile-searc
 	color: var(--text-normal);
 }
 
+/* Still takes the press, so the tap cannot fall through and drop the keyboard */
 .mobile-search-capsule .mobile-search-icon-btn.is-disabled {
 	opacity: 0.3;
 	cursor: default;
-	pointer-events: none;
 }
 
 .mobile-search-capsule .mobile-search-icon-btn.is-hidden {
@@ -402,6 +402,10 @@ body:not(.is-phone) .modal-container.mobile-search-container .modal.mobile-searc
 	color: var(--text-normal);
 	border-top: 1px solid var(--background-modifier-border-focus);
 	-webkit-tap-highlight-color: transparent;
+	/* Long-press selects the row, not its text */
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
 }
 
 .mobile-search-results .mobile-search-row:active {
@@ -477,12 +481,6 @@ body:not(.is-phone) .modal-container.mobile-search-container .modal.mobile-searc
 }
 
 /* ─── Selection mode ──────────────────────────────────────────── */
-
-.mobile-search-results .mobile-search-row {
-	-webkit-user-select: none;
-	user-select: none;
-	-webkit-touch-callout: none;
-}
 
 .mobile-search-selection-bar {
 	display: none;

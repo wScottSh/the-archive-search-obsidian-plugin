@@ -44,7 +44,7 @@ export interface Searcher {
 // ─── History ─────────────────────────────────────────────────────
 
 /** How many recent queries `recentQueries()` offers. */
-export const RECENT_LIMIT = 8;
+const RECENT_LIMIT = 8;
 
 /** A query change within this window of the last push replaces that entry. */
 export const HISTORY_MERGE_MS = 1200;

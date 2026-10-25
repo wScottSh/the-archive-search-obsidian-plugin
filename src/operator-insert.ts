@@ -23,7 +23,7 @@ const WRAPPERS: Record<'phrase' | 'group', [string, string]> = {
  * - phrase / group: wrap the selection, or put the caret between an empty pair
  * - or: insert `OR` with a space on each side, never doubling an existing one
  * - not: prefix the selection (or caret) with `!`
- * - tag: prefix the selection (or caret) with `#`
+ * - tag: prefix the selection (or caret) with `#`, spaced off a preceding word like not
  */
 export function insertOperator(value: string, start: number, end: number, operator: Operator): OperatorEdit {
     const from = Math.min(value.length, Math.max(0, Math.min(start, end)));
@@ -46,14 +46,14 @@ export function insertOperator(value: string, start: number, end: number, operat
             const trail = /^\s/.test(after) ? '' : ' ';
             return { value: before + inserted + trail + after, caret: from + inserted.length + 1 };
         }
-        case 'not': {
+        case 'not':
+        case 'tag': {
+            const mark = operator === 'not' ? '!' : '#';
             const lead = before === '' || /[\s(!]$/.test(before) ? '' : ' ';
             return {
-                value: before + lead + '!' + selected + after,
+                value: before + lead + mark + selected + after,
                 caret: from + lead.length + 1 + selected.length,
             };
         }
-        case 'tag':
-            return { value: before + '#' + selected + after, caret: from + 1 + selected.length };
     }
 }
