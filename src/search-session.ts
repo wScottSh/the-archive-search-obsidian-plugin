@@ -100,7 +100,9 @@ export class SearchSession {
     setCurrentNote(currentNote: TFile | null): void {
         const shift = (currentNote ? 1 : 0) - (this.currentNote ? 1 : 0);
         this.currentNote = currentNote;
-        this.activeIndex = Math.max(0, this.activeIndex + shift);
+        this.activeIndex = Math.max(0, Math.min(this.rows().length - 1, this.activeIndex + shift));
+        const entry = this.history[this.historyPos];
+        if (entry) entry.active = this.activeIndex;
         this.emit();
     }
 
