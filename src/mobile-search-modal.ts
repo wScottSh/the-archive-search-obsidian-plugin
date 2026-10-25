@@ -3,10 +3,10 @@
  *
  * On mobile devices, this replaces the sidebar Omnibar with a
  * full-screen modal:
- * - Search input at top with real-time filtering
  * - Scrollable result list (tap to open)
+ * - Search capsule docked to the bottom edge, riding on the keyboard
+ *   (back/forward, input, clear, close)
  * - Back/forward navigation stack
- * - Dismiss via ✕ button
  *
  * Reuses SearchEngine and parseQuery — no duplicated logic.
  */
@@ -18,6 +18,7 @@ import { SearchResult } from './search-engine';
 import { parseQuery } from './parser';
 import { extractSearchTerms, highlightInEditor } from './editor-highlight';
 import { EditorView } from '@codemirror/view';
+import { trackKeyboard } from './keyboard-tracker';
 
 interface NavEntry {
     query: string;
@@ -30,6 +31,8 @@ export class MobileSearchModal extends Modal {
     private resultListEl: HTMLElement;
     private navBackEl: HTMLElement;
     private navForwardEl: HTMLElement;
+    private clearEl: HTMLElement;
+    private stopTrackingKeyboard: (() => void) | undefined;
 
     private results: SearchResult[] = [];
 
@@ -47,48 +50,43 @@ export class MobileSearchModal extends Modal {
     }
 
     onOpen(): void {
-        const { contentEl, modalEl } = this;
+        const { contentEl, modalEl, containerEl } = this;
 
-        // Make the modal full-screen on mobile
+        // Restyled full-screen surface; the keyboard tracker sizes it to the visible area
+        containerEl.addClass('mobile-search-container');
         modalEl.addClass('mobile-search-modal');
-
-        // Remove default padding from the modal content area
         contentEl.addClass('mobile-search-content');
 
-        // ── Header bar ──
-        const headerEl = contentEl.createDiv({ cls: 'mobile-search-header' });
+        // ── Result list ──
+        this.resultListEl = contentEl.createDiv({ cls: 'mobile-search-results' });
 
-        // Close button
-        const closeBtn = headerEl.createDiv({ cls: 'mobile-search-close' });
-        setIcon(closeBtn, 'x');
-        closeBtn.setAttribute('aria-label', 'Close');
-        closeBtn.addEventListener('click', () => this.close());
+        // ── Dock: capsule at the bottom edge ──
+        const dockEl = contentEl.createDiv({ cls: 'mobile-search-dock' });
+        const capsuleEl = dockEl.createDiv({ cls: 'mobile-search-capsule' });
+
+        this.navBackEl = this.createIconButton(capsuleEl, 'arrow-left', 'Back', () => this.navigateBack());
+        this.navForwardEl = this.createIconButton(capsuleEl, 'arrow-right', 'Forward', () => this.navigateForward());
 
         // Search input
-        this.inputEl = headerEl.createEl('input', {
+        this.inputEl = capsuleEl.createEl('input', {
             type: 'text',
             placeholder: 'Search...',
             cls: 'mobile-search-input',
         });
 
-        // Nav buttons
-        const navContainer = headerEl.createDiv({ cls: 'mobile-search-nav' });
-        this.navBackEl = navContainer.createDiv({ cls: 'mobile-search-nav-btn' });
-        setIcon(this.navBackEl, 'arrow-left');
-        this.navBackEl.setAttribute('aria-label', 'Back');
-        this.navBackEl.addEventListener('click', () => this.navigateBack());
+        this.clearEl = this.createIconButton(capsuleEl, 'x-circle', 'Clear', () => {
+            this.inputEl.value = '';
+            this.executeSearch();
+            this.updateClearButton();
+            this.inputEl.focus();
+        });
 
-        this.navForwardEl = navContainer.createDiv({ cls: 'mobile-search-nav-btn' });
-        setIcon(this.navForwardEl, 'arrow-right');
-        this.navForwardEl.setAttribute('aria-label', 'Forward');
-        this.navForwardEl.addEventListener('click', () => this.navigateForward());
-
-        // ── Result list ──
-        this.resultListEl = contentEl.createDiv({ cls: 'mobile-search-results' });
+        this.createIconButton(capsuleEl, 'x', 'Close', () => this.close());
 
         // ── Event listeners ──
         this.inputEl.addEventListener('input', () => {
             this.executeSearch();
+            this.updateClearButton();
         });
 
         // Set initial query if provided (from wiki-link or hashtag)
@@ -99,12 +97,30 @@ export class MobileSearchModal extends Modal {
         // Run initial search and update nav
         this.executeSearch();
         this.updateNavButtons();
+        this.updateClearButton();
 
-        // Focus the input after a short delay (let the modal render)
-        setTimeout(() => this.inputEl.focus(), 50);
+        this.stopTrackingKeyboard = trackKeyboard(modalEl);
+
+        // Must happen synchronously inside the user's tap or iOS will not raise the keyboard
+        this.inputEl.focus();
+    }
+
+    /**
+     * Capsule button. Pressing it must not steal focus from the input,
+     * otherwise the keyboard would flicker closed.
+     */
+    private createIconButton(parent: HTMLElement, icon: string, label: string, onClick: () => void): HTMLElement {
+        const buttonEl = parent.createEl('button', { cls: 'mobile-search-icon-btn' });
+        setIcon(buttonEl, icon);
+        buttonEl.setAttribute('aria-label', label);
+        buttonEl.addEventListener('mousedown', (e) => e.preventDefault());
+        buttonEl.addEventListener('click', onClick);
+        return buttonEl;
     }
 
     onClose(): void {
+        this.stopTrackingKeyboard?.();
+        this.stopTrackingKeyboard = undefined;
         this.contentEl.empty();
     }
 
@@ -281,6 +297,11 @@ export class MobileSearchModal extends Modal {
         this.renderResults();
         this.navigating = false;
         this.updateNavButtons();
+        this.updateClearButton();
+    }
+
+    private updateClearButton(): void {
+        this.clearEl.toggleClass('is-hidden', !this.inputEl.value);
     }
 
     private updateNavButtons(): void {
