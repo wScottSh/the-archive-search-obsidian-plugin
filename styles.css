@@ -263,6 +263,11 @@
 	overflow: hidden;
 }
 
+.mobile-search-snippet-hit {
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
 .mobile-search-empty {
 	padding: 24px 16px;
 	text-align: center;

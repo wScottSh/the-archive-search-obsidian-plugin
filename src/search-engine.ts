@@ -18,7 +18,16 @@ export interface IndexEntry {
     file: TFile;
     filename: string;      // lowercased basename (no extension)
     content: string;       // lowercased full text content
+    rawContent: string;    // original-case full text content (for snippets)
     rawFilename: string;   // original-case basename (no extension)
+}
+
+// ─── Snippet Piece ───────────────────────────────────────────────
+
+/** A run of snippet text in original case; `hit` marks a search-term match. */
+export interface SnippetPiece {
+    text: string;
+    hit: boolean;
 }
 
 // ─── Search Result ───────────────────────────────────────────────
@@ -27,7 +36,7 @@ export interface SearchResult {
     file: TFile;
     filename: string;         // original-case basename
     matchInFilename: boolean; // true if any search term matched in the filename
-    snippet?: string;
+    snippet?: SnippetPiece[]; // original-case pieces, hits flagged
 }
 
 // ─── Search Engine ───────────────────────────────────────────────
@@ -168,6 +177,7 @@ export class SearchEngine {
                 file,
                 filename: basename.toLowerCase(),
                 content: content.toLowerCase(),
+                rawContent: content,
                 rawFilename: basename,
             });
         } catch {
@@ -274,14 +284,17 @@ export class SearchEngine {
 
     // ─── Snippet Production ──────────────────────────────────────────
 
-    private extractSnippet(entry: IndexEntry, terms: string[]): string | undefined {
+    /**
+     * Build an original-case snippet around the first term match, split into
+     * pieces so views can mark hits. Matching runs on the lowercased index.
+     */
+    private extractSnippet(entry: IndexEntry, terms: string[]): SnippetPiece[] | undefined {
         if (terms.length === 0) return undefined;
         const content = entry.content;
+        const lowerTerms = terms.map(t => t.toLowerCase()).filter(t => t);
         let firstPos = -1;
         let matchLen = 0;
-        for (const term of terms) {
-            const t = term.toLowerCase();
-            if (!t) continue;
+        for (const t of lowerTerms) {
             const pos = content.indexOf(t);
             if (pos !== -1 && (firstPos === -1 || pos < firstPos)) {
                 firstPos = pos;
@@ -291,13 +304,46 @@ export class SearchEngine {
         if (firstPos === -1) return undefined;
         const windowSize = 100;
         const half = Math.floor(windowSize / 2);
-        let start = Math.max(0, firstPos - half);
-        let end = Math.min(content.length, firstPos + matchLen + half);
-        let inner = content.substring(start, end).trim();
-        let snippet = inner;
-        if (start > 0) snippet = inner ? '... ' + inner : '...';
-        if (end < content.length) snippet = snippet ? snippet + '...' : '...';
-        snippet = snippet.replace(/\.{3,}/g, '...');
-        return snippet || undefined;
+        const start = Math.max(0, firstPos - half);
+        const end = Math.min(content.length, firstPos + matchLen + half);
+        // Lowercasing can change string length for a few characters; only then
+        // do index positions stop lining up with the original text.
+        const aligned = entry.rawContent.length === content.length;
+        const source = aligned ? entry.rawContent : content;
+        const inner = source.substring(start, end).trim();
+
+        const pieces = this.splitHits(inner, lowerTerms);
+        if (start > 0) pieces.unshift({ text: inner ? '... ' : '...', hit: false });
+        if (end < content.length) pieces.push({ text: '...', hit: false });
+        return pieces.length > 0 ? pieces : undefined;
+    }
+
+    /**
+     * Split text into pieces, flagging case-insensitive matches of any term.
+     * Overlapping matches become adjacent hit pieces; at equal starts the longest wins.
+     */
+    private splitHits(text: string, lowerTerms: string[]): SnippetPiece[] {
+        const lower = text.toLowerCase();
+        const ranges: Array<[number, number]> = [];
+        for (const t of lowerTerms) {
+            let from = 0;
+            for (let pos = lower.indexOf(t, from); pos !== -1; pos = lower.indexOf(t, from)) {
+                ranges.push([pos, pos + t.length]);
+                from = pos + t.length;
+            }
+        }
+        ranges.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+
+        const pieces: SnippetPiece[] = [];
+        let cursor = 0;
+        for (const [rs, re] of ranges) {
+            if (re <= cursor) continue;
+            const hs = Math.max(rs, cursor);
+            if (hs > cursor) pieces.push({ text: text.substring(cursor, hs), hit: false });
+            pieces.push({ text: text.substring(hs, re), hit: true });
+            cursor = re;
+        }
+        if (cursor < text.length) pieces.push({ text: text.substring(cursor), hit: false });
+        return pieces;
     }
 }
