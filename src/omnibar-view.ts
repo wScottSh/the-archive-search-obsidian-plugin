@@ -70,12 +70,12 @@ export class OmnibarView extends ItemView {
         this.navBackEl = navContainer.createDiv({ cls: 'omnibar-nav-btn' });
         setIcon(this.navBackEl, 'arrow-left');
         this.navBackEl.setAttribute('aria-label', 'Back');
-        this.navBackEl.addEventListener('click', () => this.step(() => this.session.back()));
+        this.navBackEl.addEventListener('click', () => this.walkHistory(() => this.session.back()));
 
         this.navForwardEl = navContainer.createDiv({ cls: 'omnibar-nav-btn' });
         setIcon(this.navForwardEl, 'arrow-right');
         this.navForwardEl.setAttribute('aria-label', 'Forward');
-        this.navForwardEl.addEventListener('click', () => this.step(() => this.session.forward()));
+        this.navForwardEl.addEventListener('click', () => this.walkHistory(() => this.session.forward()));
 
         // ── Result list ──
         this.resultListEl = container.createDiv({ cls: 'omnibar-results' });
@@ -101,7 +101,8 @@ export class OmnibarView extends ItemView {
                 // Enter commits to the note, so the search highlights come off
                 this.session.land(undefined, { clearHighlights: true });
             } else if (e.key === 'Escape') {
-                if (this.session.isSelecting) {
+                // An emptied selection shows nothing to cancel, so Escape passes through
+                if (this.session.selectionCount > 0) {
                     e.preventDefault();
                     this.clearSelection();
                 }
@@ -123,7 +124,11 @@ export class OmnibarView extends ItemView {
      * Captures the currently-open file as the pinned "Current note" unless `repin` is false.
      */
     focusInput(repin = true): void {
-        if (repin) this.session.setCurrentNote(this.workspace.currentFile());
+        if (repin) {
+            this.session.setCurrentNote(this.workspace.currentFile());
+            // Row indexes shifted with the pinned row; fall back to the active row as the anchor
+            this.lastClickedIndex = -1;
+        }
         this.inputEl?.focus();
         this.inputEl?.select();
     }
@@ -139,7 +144,7 @@ export class OmnibarView extends ItemView {
     }
 
     /** Run a history step, then show the note the restored entry has active. */
-    private step(move: () => void): void {
+    private walkHistory(move: () => void): void {
         move();
         this.session.activate(this.session.active);
     }
@@ -222,7 +227,7 @@ export class OmnibarView extends ItemView {
             return;
         }
         if (this.session.isSelecting) this.session.clearSelection();
-        this.session.activate(this.session.active + delta);
+        this.session.step(delta);
     }
 
     private clearSelection(): void {

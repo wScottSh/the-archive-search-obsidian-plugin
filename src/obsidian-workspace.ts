@@ -10,6 +10,7 @@ import { EditorView } from '@codemirror/view';
 import type { ArchiveSearchSettings } from './settings';
 import type { Workspace, LandOptions } from './search-session';
 import { highlightInEditor, clearHighlightsInEditor } from './editor-highlight';
+import { foldCase } from './search-engine';
 
 /** Time for a freshly opened file to load before touching its editor. */
 const EDITOR_READY_MS = 120;
@@ -40,10 +41,11 @@ export class ObsidianWorkspace implements Workspace {
                 const editor = leaf.view.editor;
                 if (options.clearHighlights) this.clearHighlights();
                 else this.highlight(leaf, terms);
-                const docText = editor.getValue().toLowerCase();
+                // Same-length folding keeps offsets valid for setCursor
+                const docText = foldCase(editor.getValue());
                 let firstPos = Infinity;
                 for (const term of terms) {
-                    const pos = docText.indexOf(term.toLowerCase());
+                    const pos = docText.indexOf(foldCase(term));
                     if (pos !== -1 && pos < firstPos) firstPos = pos;
                 }
                 if (firstPos !== Infinity) editor.setCursor(editor.offsetToPos(firstPos));

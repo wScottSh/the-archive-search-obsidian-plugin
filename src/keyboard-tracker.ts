@@ -35,7 +35,8 @@ export const GUESS_HOLD_MS = 800;
 export const KEYBOARD_STORAGE_KEY = 'the-archive-search-keyboard-height';
 
 const OPEN_CLASS = 'is-keyboard-open';
-const SAFE_BOTTOM = 'env(safe-area-inset-bottom, 0px)';
+/** Obsidian's own home-indicator inset (it wraps env(safe-area-inset-bottom)). */
+const SAFE_BOTTOM = 'var(--safe-area-inset-bottom, 0px)';
 const NON_TEXT_INPUT_TYPES = ['button', 'checkbox', 'radio', 'range', 'submit', 'reset', 'file', 'image', 'color'];
 
 export interface KeyboardElement {

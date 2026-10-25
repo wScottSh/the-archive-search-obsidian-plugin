@@ -7,7 +7,7 @@
  */
 
 import type { TFile } from 'obsidian';
-import type { SearchResult, SnippetPiece } from './search-engine';
+import type { SearchResult } from './search-engine';
 import { parseQuery } from './parser';
 import { extractSearchTerms } from './editor-highlight';
 
@@ -43,7 +43,7 @@ export interface Searcher {
 
 // ─── History ─────────────────────────────────────────────────────
 
-/** How many recent queries `recents()` offers. */
+/** How many recent queries `recentQueries()` offers. */
 export const RECENT_LIMIT = 8;
 
 /** A query change within this window of the last push replaces that entry. */
@@ -88,9 +88,8 @@ export class SearchSession {
         this.currentNote = currentNote;
         this.query = query;
         // A reopened search starts a fresh entry rather than merging into the last one
-        const top = this.history[this.historyPos];
-        if (top) top.at = 0;
-        this.run(true);
+        this.sealEntry();
+        this.run();
     }
 
     /**
@@ -100,9 +99,13 @@ export class SearchSession {
     setCurrentNote(currentNote: TFile | null): void {
         const shift = (currentNote ? 1 : 0) - (this.currentNote ? 1 : 0);
         this.currentNote = currentNote;
-        this.activeIndex = Math.max(0, Math.min(this.rows().length - 1, this.activeIndex + shift));
-        const entry = this.history[this.historyPos];
-        if (entry) entry.active = this.activeIndex;
+        this.setActive(this.activeIndex + shift);
+        this.emit();
+    }
+
+    /** Rerun the query against a changed index, e.g. after a note was deleted. Drops the selection. */
+    refresh(): void {
+        this.search();
         this.emit();
     }
 
@@ -113,7 +116,7 @@ export class SearchSession {
     setQuery(query: string): void {
         if (query === this.query) return;
         this.query = query;
-        this.run(true);
+        this.run();
     }
 
     /** Current note first, then results in sort order, then the create row for a non-blank query. */
@@ -130,22 +133,26 @@ export class SearchSession {
         return this.activeIndex;
     }
 
-    /** Words to highlight for a row: the whole title when the query names a note exactly, else the query's positive terms. */
-    terms(_index = this.activeIndex): string[] {
+    /** Words to highlight: the whole title when the query names a note exactly, else the query's positive terms. */
+    terms(): string[] {
         if (this.exactTitle) return [this.exactTitle];
         return extractSearchTerms(parseQuery(this.query.trim()));
     }
 
-    /** Make a row active and preview it without leaving search. */
+    /** Make a row active and preview it without leaving search. Notifies only when the active row moves. */
     activate(index: number): void {
         const rows = this.rows();
         if (rows.length === 0) return;
-        this.activeIndex = Math.max(0, Math.min(rows.length - 1, index));
+        const before = this.activeIndex;
+        this.setActive(index);
         const row = rows[this.activeIndex];
-        if (row.kind !== 'create') this.workspace.preview(row.file, this.terms(this.activeIndex));
-        const entry = this.history[this.historyPos];
-        if (entry) entry.active = this.activeIndex;
-        this.emit();
+        if (row.kind !== 'create') this.workspace.preview(row.file, this.terms());
+        if (this.activeIndex !== before) this.emit();
+    }
+
+    /** Move the active row by `delta` and preview it. */
+    step(delta: number): void {
+        this.activate(this.activeIndex + delta);
     }
 
     /** Commit to a row: open its note, or create the note for the create row. */
@@ -153,7 +160,7 @@ export class SearchSession {
         const row = this.rows()[index];
         if (!row) return;
         if (row.kind === 'create') void this.workspace.create(row.title);
-        else this.workspace.land(row.file, this.terms(index), options);
+        else this.workspace.land(row.file, this.terms(), options);
     }
 
     // ── Selection ──
@@ -213,9 +220,7 @@ export class SearchSession {
         const rows = this.rows();
         if (rows.length === 0) return;
         const from = this.activeIndex;
-        this.activeIndex = Math.max(0, Math.min(rows.length - 1, from + delta));
-        const entry = this.history[this.historyPos];
-        if (entry) entry.active = this.activeIndex;
+        this.setActive(from + delta);
         this.selectRange(from, this.activeIndex);
     }
 
@@ -246,8 +251,18 @@ export class SearchSession {
 
     // ── History ──
 
+    /**
+     * Whether the query on screen is the history entry at the cursor. A blank
+     * field (after Clear or a reopen) is not, so Back returns to that entry
+     * rather than skipping past it.
+     */
+    private get onEntry(): boolean {
+        const entry = this.history[this.historyPos];
+        return !!entry && entry.query.trim() === this.query.trim();
+    }
+
     get canBack(): boolean {
-        return this.historyPos > 0;
+        return this.historyPos > (this.onEntry ? 0 : -1);
     }
 
     get canForward(): boolean {
@@ -255,7 +270,7 @@ export class SearchSession {
     }
 
     back(): void {
-        if (this.canBack) this.restore(this.historyPos - 1);
+        if (this.canBack) this.restore(this.onEntry ? this.historyPos - 1 : this.historyPos);
     }
 
     forward(): void {
@@ -263,7 +278,7 @@ export class SearchSession {
     }
 
     /** Distinct queries the user paused on, most recent first. */
-    recents(): string[] {
+    recentQueries(): string[] {
         const seen = new Set<string>();
         const queries: string[] = [];
         for (let i = this.history.length - 1; i >= 0 && queries.length < RECENT_LIMIT; i--) {
@@ -283,8 +298,20 @@ export class SearchSession {
         this.search();
         this.activeIndex = Math.min(entry.active, Math.max(0, this.rows().length - 1));
         // Typing after Back starts a fresh entry rather than merging into this one
-        entry.at = 0;
+        this.sealEntry();
         this.emit();
+    }
+
+    /** Clamp and set the active row, remembering it in the history entry on screen. */
+    private setActive(index: number): void {
+        this.activeIndex = Math.max(0, Math.min(this.rows().length - 1, index));
+        if (this.onEntry) this.history[this.historyPos].active = this.activeIndex;
+    }
+
+    /** Close the entry at the cursor to merging, so the next query pushes a new one. */
+    private sealEntry(): void {
+        const entry = this.history[this.historyPos];
+        if (entry) entry.at = 0;
     }
 
     private pushHistory(): void {
@@ -334,39 +361,11 @@ export class SearchSession {
         this.selected.clear();
     }
 
-    private run(record: boolean): void {
+    private run(): void {
         this.search();
-        if (record && this.query.trim()) this.pushHistory();
+        // A blank field is a pause: the next query starts a fresh entry
+        if (this.query.trim()) this.pushHistory();
+        else this.sealEntry();
         this.emit();
     }
-}
-
-// ─── Highlighting ────────────────────────────────────────────────
-
-/** Split text into pieces, flagging case-insensitive occurrences of any term. */
-export function highlightPieces(text: string, terms: string[]): SnippetPiece[] {
-    const needles = terms.map((t) => t.toLowerCase()).filter(Boolean);
-    const lower = text.toLowerCase();
-    // Lowercasing can change length for a few characters; offsets would no longer line up
-    if (needles.length === 0 || lower.length !== text.length) return [{ text, hit: false }];
-
-    const pieces: SnippetPiece[] = [];
-    let cursor = 0;
-    while (cursor < text.length) {
-        let start = -1;
-        let length = 0;
-        for (const needle of needles) {
-            const pos = lower.indexOf(needle, cursor);
-            if (pos !== -1 && (start === -1 || pos < start || (pos === start && needle.length > length))) {
-                start = pos;
-                length = needle.length;
-            }
-        }
-        if (start === -1) break;
-        if (start > cursor) pieces.push({ text: text.substring(cursor, start), hit: false });
-        pieces.push({ text: text.substring(start, start + length), hit: true });
-        cursor = start + length;
-    }
-    if (cursor < text.length) pieces.push({ text: text.substring(cursor), hit: false });
-    return pieces;
 }

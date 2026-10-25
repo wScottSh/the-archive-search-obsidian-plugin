@@ -2,27 +2,28 @@
  * Mobile-optimized full-screen search modal (Thumb Dock).
  *
  * Rendering and gestures only; the search session owns all state:
+ * - A top bar holds the title, the match count and Select
  * - Results stack bottom-up so the first row sits nearest the thumb:
  *   the pinned current note right above the capsule, results reading upward
  * - Search capsule docked to the bottom edge, riding on the keyboard
  *   (back/forward, input, clear, close)
  * - Go on the keyboard opens the marked row (an exact title marks its note)
  * - Tapping a row opens the note at its first match and closes search
- * - Long-pressing a row, or the Select button, enters selection mode: rows show
+ * - Long-pressing a row, or Select, enters selection mode: rows show
  *   checkboxes and a selection bar replaces the capsule, with Actions opening
  *   Obsidian's own file menu for the selection
  * - The eye on a file row peeks at the whole note (Quick Look) without leaving search;
  *   it is hidden while selecting, where a tap toggles the row instead
  */
 
-import { App, Modal, TFile, setIcon } from 'obsidian';
+import { App, Modal, setIcon } from 'obsidian';
 import type TheArchiveSearchPlugin from '../main';
 import { trackKeyboard } from './keyboard-tracker';
 import { insertOperator, Operator } from './operator-insert';
-import { QuickLook, QuickLookItem } from './quick-look';
+import { QuickLook, QuickLookItem, appendPieces } from './quick-look';
 import { ObsidianWorkspace } from './obsidian-workspace';
-import { SearchSession, Row, highlightPieces } from './search-session';
-import type { SnippetPiece } from './search-engine';
+import { SearchSession, Row } from './search-session';
+import { highlightPieces } from './search-engine';
 
 /** Finger travel (px) that turns a touch on the list into a scroll. */
 const SCROLL_GESTURE_PX = 8;
@@ -30,6 +31,14 @@ const SCROLL_GESTURE_PX = 8;
 const LONG_PRESS_MS = 450;
 /** Vibration (ms) confirming a long press, where the device supports it. */
 const LONG_PRESS_VIBRATE_MS = 10;
+
+/**
+ * Pressing `el` must not take focus from the search input, or the keyboard
+ * would drop. Cancelling mousedown is what Obsidian's own mobile toolbar does.
+ */
+function keepFocus(el: HTMLElement): void {
+    el.addEventListener('mousedown', (e) => e.preventDefault());
+}
 
 export class MobileSearchModal extends Modal {
     private plugin: TheArchiveSearchPlugin;
@@ -39,10 +48,13 @@ export class MobileSearchModal extends Modal {
     private navBackEl: HTMLElement;
     private navForwardEl: HTMLElement;
     private clearEl: HTMLElement;
+    private matchCountEl: HTMLElement;
+    private selectEl: HTMLElement;
     private selectionCountEl: HTMLElement;
     private actionsEl: HTMLElement;
     private stopTrackingKeyboard: (() => void) | undefined;
     private unsubscribe: (() => void) | undefined;
+    private stopWatchingNotes: (() => void) | undefined;
     private quickLook: QuickLook | undefined;
 
     private initialQuery: string | undefined;
@@ -65,6 +77,20 @@ export class MobileSearchModal extends Modal {
         modalEl.addClass('mobile-search-modal');
         contentEl.addClass('mobile-search-content');
 
+        // ── Top bar ──
+        const topBarEl = contentEl.createDiv({ cls: 'mobile-search-top-bar' });
+        topBarEl.createSpan({ cls: 'mobile-search-title', text: 'Search' });
+        this.matchCountEl = topBarEl.createSpan({ cls: 'mobile-search-match-count' });
+        this.selectEl = topBarEl.createEl('button', { cls: 'mobile-search-select-btn', text: 'Select' });
+        this.selectEl.addEventListener('click', () => {
+            if (this.session.isSelecting) {
+                this.session.clearSelection();
+            } else {
+                this.inputEl.blur();
+                this.session.beginSelect();
+            }
+        });
+
         // ── Result list (laid out bottom-up by CSS) ──
         this.resultListEl = contentEl.createDiv({ cls: 'mobile-search-results' });
         this.watchListScroll();
@@ -82,12 +108,15 @@ export class MobileSearchModal extends Modal {
             type: 'text',
             placeholder: 'Search...',
             cls: 'mobile-search-input',
+            attr: { autocapitalize: 'off', autocorrect: 'off', autocomplete: 'off', spellcheck: 'false' },
         });
         // The keyboard's action key reads Go and opens the marked row
         this.inputEl.enterKeyHint = 'go';
         this.inputEl.addEventListener('keydown', (e) => {
             if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
             e.preventDefault();
+            // Nothing to open (an empty vault): stay in search
+            if (!this.session.rows()[this.session.active]) return;
             this.session.land();
             this.exit();
         });
@@ -98,10 +127,6 @@ export class MobileSearchModal extends Modal {
             this.inputEl.focus();
         });
 
-        this.createIconButton(capsuleEl, 'check-square', 'Select', () => {
-            this.inputEl.blur();
-            this.session.beginSelect();
-        });
         this.createIconButton(capsuleEl, 'x', 'Close', () => this.exit());
         this.createSelectionBar(dockEl);
 
@@ -112,6 +137,8 @@ export class MobileSearchModal extends Modal {
         this.unsubscribe = this.session.subscribe(() => this.render());
         this.inputEl.addEventListener('input', () => this.session.setQuery(this.inputEl.value));
         this.session.open(workspace.currentFile(), this.initialQuery);
+        // A note deleted or renamed through Actions must leave the list
+        this.stopWatchingNotes = this.plugin.searchEngine.onNoteRemoved(() => this.session.refresh());
 
         this.stopTrackingKeyboard = trackKeyboard(modalEl);
 
@@ -120,14 +147,13 @@ export class MobileSearchModal extends Modal {
     }
 
     /**
-     * Capsule button. Pressing it must not steal focus from the input,
-     * otherwise the keyboard would flicker closed.
+     * Capsule button. Pressing it keeps the keyboard up.
      */
     private createIconButton(parent: HTMLElement, icon: string, label: string, onClick: () => void): HTMLElement {
         const buttonEl = parent.createEl('button', { cls: 'mobile-search-icon-btn' });
         setIcon(buttonEl, icon);
         buttonEl.setAttribute('aria-label', label);
-        buttonEl.addEventListener('mousedown', (e) => e.preventDefault());
+        keepFocus(buttonEl);
         buttonEl.addEventListener('click', onClick);
         return buttonEl;
     }
@@ -143,6 +169,8 @@ export class MobileSearchModal extends Modal {
         };
         addButton('Select all', () => this.session.selectAll());
         this.actionsEl = addButton('Actions', (buttonEl) => {
+            // With nothing selected the session would target the active row instead
+            if (this.session.selectionCount === 0) return;
             const rect = buttonEl.getBoundingClientRect();
             this.session.openFileMenu({ x: rect.left + rect.width / 2, y: rect.top });
         });
@@ -166,7 +194,7 @@ export class MobileSearchModal extends Modal {
         for (const [operator, text, label] of operators) {
             const buttonEl = rowEl.createEl('button', { cls: 'mobile-search-operator-btn', text });
             buttonEl.setAttribute('aria-label', label);
-            buttonEl.addEventListener('mousedown', (e) => e.preventDefault());
+            keepFocus(buttonEl);
             buttonEl.addEventListener('click', () => this.applyOperator(operator));
         }
     }
@@ -181,7 +209,9 @@ export class MobileSearchModal extends Modal {
 
     /**
      * Escape and Android back both arrive here, so one press backs out one
-     * level: Quick Look, then selection, then the search itself.
+     * level: Quick Look, then selection, then the search itself. (Obsidian's
+     * back button calls the top closeable's `onHistoryBack`, which for a Modal
+     * is `this.close()`; the modal leaves that stack only in `super.close()`.)
      */
     close(): void {
         if (this.quickLook) this.quickLook.close();
@@ -198,6 +228,8 @@ export class MobileSearchModal extends Modal {
         this.quickLook?.close();
         this.unsubscribe?.();
         this.unsubscribe = undefined;
+        this.stopWatchingNotes?.();
+        this.stopWatchingNotes = undefined;
         this.stopTrackingKeyboard?.();
         this.stopTrackingKeyboard = undefined;
         this.contentEl.empty();
@@ -213,6 +245,8 @@ export class MobileSearchModal extends Modal {
         this.navForwardEl.toggleClass('is-disabled', !this.session.canForward);
         const selecting = this.session.isSelecting;
         this.contentEl.toggleClass('is-selecting', selecting);
+        this.selectEl.setText(selecting ? 'Done' : 'Select');
+        this.matchCountEl.setText(this.matchCount(query));
         this.selectionCountEl.setText(`${this.session.selectionCount} selected`);
         this.actionsEl.toggleClass('is-disabled', this.session.selectionCount === 0);
         this.renderList();
@@ -227,12 +261,16 @@ export class MobileSearchModal extends Modal {
         // Rebuilding the list would otherwise jump it back to the thumb end on every toggle
         const scrollTop = this.resultListEl.scrollTop;
         this.resultListEl.empty();
-        if (query.trim() === '') this.renderRecents();
+        // Recents sit just past the pinned current note, or nearest the thumb without one
+        const showRecents = query.trim() === '';
+        const pinned = rows[0]?.kind === 'current';
+        if (showRecents && !pinned) this.renderRecents();
         rows.forEach((row, index) => {
             if (row.kind === 'create' && showEmpty) {
                 this.resultListEl.createDiv({ cls: 'mobile-search-empty', text: 'No notes match' });
             }
             this.renderRow(row, index, terms);
+            if (showRecents && pinned && index === 0) this.renderRecents();
         });
 
         // The list is anchored to the thumb end; a new query starts there
@@ -240,14 +278,21 @@ export class MobileSearchModal extends Modal {
         this.renderedQuery = query;
     }
 
-    /** Recent-query chips; first in the bottom-up list, so nearest the thumb. */
+    /** "3 matches" for a query, "120 notes" for the full list. */
+    private matchCount(query: string): string {
+        const count = this.session.rows().filter((row) => row.kind === 'result').length;
+        const noun = query.trim() ? (count === 1 ? 'match' : 'matches') : count === 1 ? 'note' : 'notes';
+        return `${count} ${noun}`;
+    }
+
+    /** Recent-query chips in one scrolling row, newest first. */
     private renderRecents(): void {
-        const recents = this.session.recents();
+        const recents = this.session.recentQueries();
         if (recents.length === 0) return;
         const chipsEl = this.resultListEl.createDiv({ cls: 'mobile-search-recents' });
         for (const recent of recents) {
             const chipEl = chipsEl.createEl('button', { cls: 'mobile-search-chip', text: recent });
-            chipEl.addEventListener('mousedown', (e) => e.preventDefault());
+            keepFocus(chipEl);
             chipEl.addEventListener('click', () => this.session.setQuery(recent));
         }
     }
@@ -273,7 +318,7 @@ export class MobileSearchModal extends Modal {
         if (this.session.isSelecting && row.kind !== 'create') {
             const checkboxEl = rowEl.createEl('input', { type: 'checkbox', cls: 'mobile-search-row-checkbox' });
             checkboxEl.checked = this.session.isSelected(index);
-            rowEl.toggleClass('is-selected', checkboxEl.checked);
+            rowEl.toggleClass('is-multi-selected', checkboxEl.checked);
         }
 
         if (row.kind === 'create') {
@@ -289,7 +334,7 @@ export class MobileSearchModal extends Modal {
         if (row.kind === 'current') {
             titleEl.setText(`Current note: ${row.file.basename}`);
         } else {
-            this.appendPieces(titleEl, highlightPieces(row.result.filename, terms));
+            appendPieces(titleEl, highlightPieces(row.result.filename, terms));
             if (row.result.matchInFilename) titleEl.addClass('is-filename-match');
         }
 
@@ -298,7 +343,7 @@ export class MobileSearchModal extends Modal {
         if (!this.session.isSelecting) this.createEyeButton(rowEl, index, terms);
 
         if (row.kind === 'result' && this.plugin.settings.showMobilePreviews && row.result.snippet) {
-            this.appendPieces(rowEl.createDiv({ cls: 'mobile-search-row-snippet' }), row.result.snippet);
+            appendPieces(rowEl.createDiv({ cls: 'mobile-search-row-snippet' }), row.result.snippet);
         }
     }
 
@@ -307,7 +352,7 @@ export class MobileSearchModal extends Modal {
         const eyeEl = rowEl.createEl('button', { cls: 'mobile-search-eye-btn' });
         setIcon(eyeEl, 'eye');
         eyeEl.setAttribute('aria-label', 'Quick Look');
-        eyeEl.addEventListener('mousedown', (e) => e.preventDefault());
+        keepFocus(eyeEl);
         // Keep the row's long-press from starting under the eye
         eyeEl.addEventListener('pointerdown', (e) => e.stopPropagation());
         eyeEl.addEventListener('click', (e) => {
@@ -337,13 +382,6 @@ export class MobileSearchModal extends Modal {
                 this.quickLook = undefined;
             },
         });
-    }
-
-    private appendPieces(parent: HTMLElement, pieces: SnippetPiece[]): void {
-        for (const piece of pieces) {
-            if (piece.hit) parent.createSpan({ cls: 'mobile-search-hit', text: piece.text });
-            else parent.appendText(piece.text);
-        }
     }
 
     /**

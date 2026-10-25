@@ -55,6 +55,14 @@ describe('insertLink', () => {
         expect((Notice as any).messages).toEqual(['Open a note to insert a link into']);
     });
 
+    it('does not link a note into itself', () => {
+        const { view, inserted } = makeMarkdownView('Ideas.md');
+        const { app } = makeApp(view);
+        expect(insertLink(app, makeFile('Ideas.md'))).toBe(false);
+        expect(inserted).toEqual([]);
+        expect((Notice as any).messages).toEqual(['A note cannot link to itself']);
+    });
+
     it('inserts nothing when there is no leaf', () => {
         const { app } = makeApp(undefined);
         expect(insertLink(app, makeFile('Ideas.md'))).toBe(false);
@@ -147,11 +155,11 @@ describe('QuickLook stepping', () => {
     const items = files.map((file, i) => ({ file, index: i }));
 
     function open(start: number, view?: unknown) {
-        const reads: Array<{ path: string; resolve: (text: string) => void }> = [];
+        const reads: Array<{ path: string; resolve: (text: string) => void; reject: (err: Error) => void }> = [];
         const { app } = makeApp(view);
         app.vault = {
             cachedRead: (file: TFile) =>
-                new Promise<string>((resolve) => reads.push({ path: file.path, resolve })),
+                new Promise<string>((resolve, reject) => reads.push({ path: file.path, resolve, reject })),
         };
         const parent = new FakeEl();
         const opened: number[] = [];
@@ -230,5 +238,13 @@ describe('QuickLook stepping', () => {
         await Promise.resolve();
         await Promise.resolve();
         expect(overlay.find('mobile-search-quicklook-body')!.text).toBe('fresh text');
+    });
+
+    it('says so when the note cannot be read', async () => {
+        const { overlay, reads } = open(0);
+        reads[0].reject(new Error('gone'));
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(overlay.find('mobile-search-quicklook-body')!.text).toBe('Could not read this note');
     });
 });

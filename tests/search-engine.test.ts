@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SearchEngine, IndexEntry, SnippetPiece } from '../src/search-engine';
+import { SearchEngine, IndexEntry, SnippetPiece, foldCase, highlightPieces } from '../src/search-engine';
 import { parseQuery, SearchNode } from '../src/parser';
 import { extractSearchTerms } from '../src/editor-highlight';
 import { TFile } from 'obsidian';
@@ -15,8 +15,8 @@ import { TFile } from 'obsidian';
 function mockEntry(filename: string, content: string): IndexEntry {
     return {
         file: { path: filename + '.md', basename: filename } as unknown as TFile,
-        filename: filename.toLowerCase(),
-        content: content.toLowerCase(),
+        filename: foldCase(filename),
+        content: foldCase(content),
         rawContent: content,
         rawFilename: filename,
     };
@@ -254,10 +254,41 @@ describe('SearchEngine snippet extraction', () => {
         expect(joinPieces(pieces)).toContain('Intro');
     });
 
+    it('keeps original case after a character whose lowercase is longer', () => {
+        const pieces = getPieces('kebap', 'f', 'İstanbul Kebap House');
+        expect(joinPieces(pieces)).toBe('İstanbul Kebap House');
+        expect(hits(pieces)).toEqual(['Kebap']);
+    });
+
+    it('marks a term found inside another term once, as the longer hit', () => {
+        expect(hits(getPieces('foo foobar', 'f', 'a Foobar here'))).toEqual(['Foobar']);
+    });
+
     it('search() returns original-case pieces', () => {
         const engine = createEngine();
         (engine as any).index.set('/n.md', mockEntry('n', 'A note on Spaced Repetition'));
         const results = engine.search('spaced');
         expect(hits(results[0].snippet)).toEqual(['Spaced']);
+    });
+});
+
+describe('highlightPieces', () => {
+    it('flags case-insensitive hits and keeps original case', () => {
+        expect(highlightPieces('An Apple pie', ['apple'])).toEqual([
+            { text: 'An ', hit: false },
+            { text: 'Apple', hit: true },
+            { text: ' pie', hit: false },
+        ]);
+    });
+
+    it('returns the whole text when there are no terms', () => {
+        expect(highlightPieces('plain', [])).toEqual([{ text: 'plain', hit: false }]);
+    });
+
+    it('lines hits up with the original text after a dotted capital I', () => {
+        expect(highlightPieces('İzmir pie', ['pie'])).toEqual([
+            { text: 'İzmir ', hit: false },
+            { text: 'pie', hit: true },
+        ]);
     });
 });

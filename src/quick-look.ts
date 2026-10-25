@@ -9,7 +9,7 @@
  */
 
 import { App, MarkdownView, Notice, TFile, setIcon } from 'obsidian';
-import { highlightPieces } from './search-session';
+import { highlightPieces, SnippetPiece } from './search-engine';
 
 /** Where in the body the first match rests, as a fraction of its height. */
 const MATCH_POSITION = 0.25;
@@ -25,6 +25,10 @@ export function insertLink(app: App, file: TFile): boolean {
         new Notice('Open a note to insert a link into');
         return false;
     }
+    if (view.file.path === file.path) {
+        new Notice('A note cannot link to itself');
+        return false;
+    }
     view.editor.replaceSelection(app.fileManager.generateMarkdownLink(file, view.file.path));
     return true;
 }
@@ -37,6 +41,14 @@ export function insertLink(app: App, file: TFile): boolean {
 export function scrollToMatch(body: HTMLElement, target: HTMLElement): void {
     const offset = target.getBoundingClientRect().top - body.getBoundingClientRect().top;
     body.scrollTop = Math.max(0, body.scrollTop + offset - body.clientHeight * MATCH_POSITION);
+}
+
+/** Append text pieces to `parent`, wrapping hits so they stand out. */
+export function appendPieces(parent: HTMLElement, pieces: SnippetPiece[]): void {
+    for (const piece of pieces) {
+        if (piece.hit) parent.createSpan({ cls: 'mobile-search-hit', text: piece.text });
+        else parent.appendText(piece.text);
+    }
 }
 
 /** Horizontal travel (px) that turns a drag on the body into a step. */
@@ -142,9 +154,14 @@ export class QuickLook {
         this.bodyEl.empty();
         this.bodyEl.scrollTop = 0;
         // A step can land before the previous read resolves; only the latest note renders
-        void this.options.app.vault.cachedRead(file).then((text) => {
-            if (!this.closed && this.current.file === file) this.renderText(this.bodyEl, text);
-        });
+        this.options.app.vault.cachedRead(file).then(
+            (text) => {
+                if (!this.closed && this.current.file === file) this.renderText(this.bodyEl, text);
+            },
+            () => {
+                if (!this.closed && this.current.file === file) this.bodyEl.setText('Could not read this note');
+            },
+        );
     }
 
     /** Horizontal swipe on the body steps; vertical drags are left to scroll the note. */
@@ -176,10 +193,7 @@ export class QuickLook {
     }
 
     private renderText(bodyEl: HTMLElement, text: string): void {
-        for (const piece of highlightPieces(text, this.options.terms)) {
-            if (piece.hit) bodyEl.createSpan({ cls: 'mobile-search-hit', text: piece.text });
-            else bodyEl.appendText(piece.text);
-        }
+        appendPieces(bodyEl, highlightPieces(text, this.options.terms));
         const firstHit = bodyEl.querySelector<HTMLElement>('.mobile-search-hit');
         if (firstHit) scrollToMatch(bodyEl, firstHit);
     }

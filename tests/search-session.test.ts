@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TFile } from 'obsidian';
 import { SearchEngine } from '../src/search-engine';
-import { SearchSession, Workspace, highlightPieces, HISTORY_MERGE_MS } from '../src/search-session';
+import { SearchSession, Workspace, HISTORY_MERGE_MS } from '../src/search-session';
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -48,7 +48,7 @@ async function setup(notes: Record<string, string>) {
     await engine.buildIndex();
     const { calls, workspace } = recorder();
     const session = new SearchSession(engine, workspace);
-    return { session, calls, files: Object.fromEntries(files.map((f) => [f.basename, f])) };
+    return { session, calls, engine, files: Object.fromEntries(files.map((f) => [f.basename, f])) };
 }
 
 const NOTES = {
@@ -107,6 +107,19 @@ describe('SearchSession rows', () => {
 });
 
 describe('SearchSession activate and land', () => {
+    it('activate notifies only when the active row moves', async () => {
+        const { session, calls } = await setup(NOTES);
+        session.open(null);
+        const fn = vi.fn();
+        session.subscribe(fn);
+        session.activate(0);
+        expect(fn).not.toHaveBeenCalled();
+        expect(calls.at(-1)?.method).toBe('preview');
+        session.step(1);
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(session.active).toBe(1);
+    });
+
     it('activate previews the row without landing', async () => {
         const { session, calls, files } = await setup(NOTES);
         session.open(null, 'appl');
@@ -250,6 +263,19 @@ describe('SearchSession exact title', () => {
         session.setQuery('apple pi');
         expect(session.active).toBe(0);
         expect(session.terms()).toEqual(['apple', 'pi']);
+    });
+});
+
+describe('SearchSession refresh', () => {
+    it('drops a deleted note and the selection once the engine reports it', async () => {
+        const { session, engine, files } = await setup(NOTES);
+        session.open(null);
+        session.toggleSelect(0);
+        engine.onNoteRemoved(() => session.refresh());
+        engine.getEventRefs().onDelete(files.Apple);
+        expect(shape(session)).toEqual(['Banana', 'Cherry']);
+        expect(session.isSelecting).toBe(false);
+        expect(session.selectionCount).toBe(0);
     });
 });
 
@@ -468,7 +494,7 @@ describe('SearchSession history details', () => {
         vi.advanceTimersByTime(HISTORY_MERGE_MS + 1);
         session.setQuery('apple ');
         expect(session.canBack).toBe(false);
-        expect(session.recents()).toEqual(['apple']);
+        expect(session.recentQueries()).toEqual(['apple']);
     });
 
     it('back and forward notify subscribers once and do nothing at the ends', async () => {
@@ -494,9 +520,52 @@ describe('SearchSession history details', () => {
         session.open(null);
         expect(session.getQuery()).toBe('');
         session.setQuery('cherry');
-        expect(session.recents()).toEqual(['cherry', 'banana', 'apple']);
+        expect(session.recentQueries()).toEqual(['cherry', 'banana', 'apple']);
         session.back();
         expect(session.getQuery()).toBe('banana');
+    });
+
+    it('Back from a blank field returns to the query just left', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'apple');
+        vi.advanceTimersByTime(HISTORY_MERGE_MS + 1);
+        session.setQuery('banana');
+        session.open(null);
+        expect(session.canBack).toBe(true);
+        session.back();
+        expect(session.getQuery()).toBe('banana');
+        session.back();
+        expect(session.getQuery()).toBe('apple');
+    });
+
+    it('Back works from a blank field with a single entry', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'apple');
+        session.setQuery('');
+        expect(session.canBack).toBe(true);
+        session.back();
+        expect(session.getQuery()).toBe('apple');
+        expect(session.canBack).toBe(false);
+    });
+
+    it('activating a row in a blank field leaves the history entry alone', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'apple');
+        session.activate(1);
+        vi.advanceTimersByTime(HISTORY_MERGE_MS + 1);
+        session.open(null);
+        session.activate(2);
+        session.back();
+        expect(session.getQuery()).toBe('apple');
+        expect(session.active).toBe(1);
+    });
+
+    it('clearing the field and retyping quickly starts a fresh entry', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'apple');
+        session.setQuery('');
+        session.setQuery('banana');
+        expect(session.recentQueries()).toEqual(['banana', 'apple']);
     });
 
     it('lists recents most recent first, distinct, capped', async () => {
@@ -506,28 +575,14 @@ describe('SearchSession history details', () => {
             session.setQuery(q);
             vi.advanceTimersByTime(HISTORY_MERGE_MS + 1);
         }
-        expect(session.recents()).toEqual(['i1', 'h1', 'g1', 'f1', 'e1', 'd1', 'c1', 'a1']);
+        expect(session.recentQueries()).toEqual(['i1', 'h1', 'g1', 'f1', 'e1', 'd1', 'c1', 'a1']);
     });
 
     it('rerunning a recent query searches it', async () => {
         const { session } = await setup(NOTES);
         session.open(null, 'banana');
         session.setQuery('');
-        session.setQuery(session.recents()[0]);
+        session.setQuery(session.recentQueries()[0]);
         expect(shape(session)).toEqual(['Banana', 'create']);
-    });
-});
-
-describe('highlightPieces', () => {
-    it('flags case-insensitive hits and keeps original case', () => {
-        expect(highlightPieces('An Apple pie', ['apple'])).toEqual([
-            { text: 'An ', hit: false },
-            { text: 'Apple', hit: true },
-            { text: ' pie', hit: false },
-        ]);
-    });
-
-    it('returns the whole text when there are no terms', () => {
-        expect(highlightPieces('plain', [])).toEqual([{ text: 'plain', hit: false }]);
     });
 });
