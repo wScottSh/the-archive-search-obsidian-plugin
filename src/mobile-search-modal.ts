@@ -1,47 +1,38 @@
 /**
- * Mobile-optimized full-screen search modal.
+ * Mobile-optimized full-screen search modal (Thumb Dock).
  *
- * On mobile devices, this replaces the sidebar Omnibar with a
- * full-screen modal:
- * - Scrollable result list (tap to open)
+ * Rendering and gestures only; the search session owns all state:
+ * - Results stack bottom-up so the first row sits nearest the thumb:
+ *   the pinned current note right above the capsule, results reading upward
  * - Search capsule docked to the bottom edge, riding on the keyboard
  *   (back/forward, input, clear, close)
- * - Back/forward navigation stack
- *
- * Reuses SearchEngine and parseQuery — no duplicated logic.
+ * - Tapping a row opens the note at its first match and closes search
  */
 
-import { App, Modal, Platform, setIcon, normalizePath, Notice, MarkdownView, WorkspaceLeaf } from 'obsidian';
+import { App, Modal, setIcon } from 'obsidian';
 import type TheArchiveSearchPlugin from '../main';
-import { SearchResult } from './search-engine';
-
-import { parseQuery } from './parser';
-import { extractSearchTerms, highlightInEditor } from './editor-highlight';
-import { EditorView } from '@codemirror/view';
 import { trackKeyboard } from './keyboard-tracker';
+import { ObsidianWorkspace } from './obsidian-workspace';
+import { SearchSession, Row, highlightPieces } from './search-session';
+import type { SnippetPiece } from './search-engine';
 
-interface NavEntry {
-    query: string;
-    selectedIndex: number;
-}
+/** Finger travel (px) that turns a touch on the list into a scroll. */
+const SCROLL_GESTURE_PX = 8;
 
 export class MobileSearchModal extends Modal {
     private plugin: TheArchiveSearchPlugin;
+    private session: SearchSession;
     private inputEl: HTMLInputElement;
     private resultListEl: HTMLElement;
     private navBackEl: HTMLElement;
     private navForwardEl: HTMLElement;
     private clearEl: HTMLElement;
     private stopTrackingKeyboard: (() => void) | undefined;
-
-    private results: SearchResult[] = [];
-
-    // Navigation stack
-    private navStack: NavEntry[] = [];
-    private navPos = -1;
-    private navigating = false;
+    private unsubscribe: (() => void) | undefined;
 
     private initialQuery: string | undefined;
+    /** Query the list was last rendered for; the list returns to the thumb when it changes. */
+    private renderedQuery: string | undefined;
 
     constructor(app: App, plugin: TheArchiveSearchPlugin, query?: string) {
         super(app);
@@ -57,15 +48,16 @@ export class MobileSearchModal extends Modal {
         modalEl.addClass('mobile-search-modal');
         contentEl.addClass('mobile-search-content');
 
-        // ── Result list ──
+        // ── Result list (laid out bottom-up by CSS) ──
         this.resultListEl = contentEl.createDiv({ cls: 'mobile-search-results' });
+        this.watchListScroll();
 
         // ── Dock: capsule at the bottom edge ──
         const dockEl = contentEl.createDiv({ cls: 'mobile-search-dock' });
         const capsuleEl = dockEl.createDiv({ cls: 'mobile-search-capsule' });
 
-        this.navBackEl = this.createIconButton(capsuleEl, 'arrow-left', 'Back', () => this.navigateBack());
-        this.navForwardEl = this.createIconButton(capsuleEl, 'arrow-right', 'Forward', () => this.navigateForward());
+        this.navBackEl = this.createIconButton(capsuleEl, 'arrow-left', 'Back', () => this.session.back());
+        this.navForwardEl = this.createIconButton(capsuleEl, 'arrow-right', 'Forward', () => this.session.forward());
 
         // Search input
         this.inputEl = capsuleEl.createEl('input', {
@@ -76,28 +68,18 @@ export class MobileSearchModal extends Modal {
 
         this.clearEl = this.createIconButton(capsuleEl, 'x-circle', 'Clear', () => {
             this.inputEl.value = '';
-            this.executeSearch();
-            this.updateClearButton();
+            this.session.setQuery('');
             this.inputEl.focus();
         });
 
         this.createIconButton(capsuleEl, 'x', 'Close', () => this.close());
 
-        // ── Event listeners ──
-        this.inputEl.addEventListener('input', () => {
-            this.executeSearch();
-            this.updateClearButton();
-        });
-
-        // Set initial query if provided (from wiki-link or hashtag)
-        if (this.initialQuery) {
-            this.inputEl.value = this.initialQuery;
-        }
-
-        // Run initial search and update nav
-        this.executeSearch();
-        this.updateNavButtons();
-        this.updateClearButton();
+        // ── Session ──
+        const workspace = new ObsidianWorkspace(this.app, () => this.plugin.settings);
+        this.session = new SearchSession(this.plugin.searchEngine, workspace);
+        this.unsubscribe = this.session.subscribe(() => this.render());
+        this.inputEl.addEventListener('input', () => this.session.setQuery(this.inputEl.value));
+        this.session.open(workspace.currentFile(), this.initialQuery);
 
         this.stopTrackingKeyboard = trackKeyboard(modalEl);
 
@@ -119,264 +101,96 @@ export class MobileSearchModal extends Modal {
     }
 
     onClose(): void {
+        this.unsubscribe?.();
+        this.unsubscribe = undefined;
         this.stopTrackingKeyboard?.();
         this.stopTrackingKeyboard = undefined;
         this.contentEl.empty();
     }
 
-    // ── Search ──
-
-    private executeSearch(): void {
-        const query = this.inputEl.value;
-        this.results = this.plugin.searchEngine.search(query);
-        this.renderResults();
-
-        // Push to nav stack
-        if (!this.navigating && query.trim()) {
-            this.pushNavState();
-        }
-    }
-
     // ── Render ──
 
-    private renderResults(): void {
+    private render(): void {
+        const query = this.session.getQuery();
+        if (this.inputEl.value !== query) this.inputEl.value = query;
+        this.clearEl.toggleClass('is-hidden', !query);
+        this.navBackEl.toggleClass('is-disabled', !this.session.canBack);
+        this.navForwardEl.toggleClass('is-disabled', !this.session.canForward);
+        this.renderList();
+    }
+
+    private renderList(): void {
+        const query = this.session.getQuery();
+        const rows = this.session.rows();
+        const terms = this.session.terms();
+        const showEmpty = query.trim() !== '' && !rows.some((row) => row.kind === 'result');
+
         this.resultListEl.empty();
+        rows.forEach((row, index) => {
+            if (row.kind === 'create' && showEmpty) {
+                this.resultListEl.createDiv({ cls: 'mobile-search-empty', text: 'No notes match' });
+            }
+            this.renderRow(row, index, terms);
+        });
 
-        const query = this.inputEl.value.trim();
+        // The list is anchored to the thumb end; a new query starts there
+        if (query !== this.renderedQuery) this.resultListEl.scrollTop = 0;
+        this.renderedQuery = query;
+    }
 
-        if (this.results.length === 0 && !query) {
+    private renderRow(row: Row, index: number, terms: string[]): void {
+        const cls = `mobile-search-row mobile-search-row-${row.kind}`;
+        const rowEl = this.resultListEl.createDiv({ cls });
+        rowEl.addEventListener('click', () => {
+            this.session.land(index);
+            this.close();
+        });
+
+        if (row.kind === 'create') {
+            setIcon(rowEl.createSpan({ cls: 'mobile-search-row-icon' }), 'plus');
+            rowEl.createSpan({ cls: 'mobile-search-row-title', text: `Create new note: "${row.title}"` });
             return;
         }
 
-        if (this.results.length === 0 && query) {
-            this.resultListEl.createDiv({
-                cls: 'mobile-search-empty',
-                text: 'No results found',
-            });
+        if (row.kind === 'current') {
+            setIcon(rowEl.createSpan({ cls: 'mobile-search-row-icon' }), 'file-text');
+        }
+        const titleEl = rowEl.createSpan({ cls: 'mobile-search-row-title' });
+        if (row.kind === 'current') {
+            titleEl.setText(`Current note: ${row.file.basename}`);
+        } else {
+            this.appendPieces(titleEl, highlightPieces(row.result.filename, terms));
+            if (row.result.matchInFilename) titleEl.addClass('is-filename-match');
         }
 
-        for (let i = 0; i < this.results.length; i++) {
-            const result = this.results[i];
+        const folder = row.file.parent?.path || '';
+        if (folder) rowEl.createSpan({ cls: 'mobile-search-row-folder', text: folder });
 
-            const itemEl = this.resultListEl.createDiv({
-                cls: 'mobile-search-result-item',
-            });
-
-            const titleEl = itemEl.createSpan({
-                cls: 'omnibar-result-title',
-            });
-            titleEl.textContent = result.filename;
-
-            if (result.matchInFilename) {
-                titleEl.addClass('is-filename-match');
-            }
-
-            // Folder path
-            const folderPath = result.file.parent?.path || '';
-            if (folderPath) {
-                itemEl.createSpan({
-                    cls: 'omnibar-result-path',
-                    text: folderPath,
-                });
-            }
-
-            if (this.plugin.settings.showMobilePreviews && result.snippet) {
-                const snippetEl = itemEl.createDiv({ cls: 'mobile-search-result-snippet' });
-                for (const piece of result.snippet) {
-                    if (piece.hit) {
-                        snippetEl.createSpan({ cls: 'mobile-search-snippet-hit', text: piece.text });
-                    } else {
-                        snippetEl.appendText(piece.text);
-                    }
-                }
-            }
-
-            // Tap to open
-            itemEl.addEventListener('click', () => {
-                this.openResult(result);
-            });
-        }
-
-        // ── "Create new note" row (always last when query is non-empty) ──
-        if (query) {
-            const createEl = this.resultListEl.createDiv({
-                cls: 'mobile-search-result-item mobile-search-create-item',
-            });
-
-            const iconEl = createEl.createSpan({ cls: 'omnibar-create-icon' });
-            setIcon(iconEl, 'plus');
-
-            createEl.createSpan({
-                cls: 'omnibar-create-text',
-                text: `Create new note: "${query}"`,
-            });
-
-            createEl.addEventListener('click', () => {
-                this.createNote();
-            });
+        if (row.kind === 'result' && this.plugin.settings.showMobilePreviews && row.result.snippet) {
+            this.appendPieces(rowEl.createDiv({ cls: 'mobile-search-row-snippet' }), row.result.snippet);
         }
     }
 
-    // ── Open Result ──
-
-    private async openResult(result: SearchResult): Promise<void> {
-        const query = this.inputEl.value.trim();
-        this.close();
-
-        const leaf = this.app.workspace.getMostRecentLeaf();
-        if (leaf && result.file) {
-            await leaf.openFile(result.file);
-            setTimeout(() => {
-                if (leaf?.view instanceof MarkdownView) {
-                    const editor = leaf.view.editor;
-                    const editorView = this.getEditorViewFromLeaf(leaf);
-                    if (query) {
-                        const ast = parseQuery(query);
-                        const terms = extractSearchTerms(ast);
-                        if (terms.length > 0) {
-                            if (this.plugin.settings.highlightMatches && editorView) {
-                                highlightInEditor(editorView, terms);
-                            }
-                            const docText = editor.getValue().toLowerCase();
-                            let firstPos = Infinity;
-                            for (const term of terms) {
-                                const pos = docText.indexOf(term.toLowerCase());
-                                if (pos !== -1 && pos < firstPos) {
-                                    firstPos = pos;
-                                }
-                            }
-                            if (firstPos !== Infinity) {
-                                const editorPos = editor.offsetToPos(firstPos);
-                                editor.setCursor(editorPos);
-                            }
-                        }
-                    }
-                    this.app.workspace.setActiveLeaf(leaf, { focus: true });
-                    editor.focus();
-                }
-            }, 120);
+    private appendPieces(parent: HTMLElement, pieces: SnippetPiece[]): void {
+        for (const piece of pieces) {
+            if (piece.hit) parent.createSpan({ cls: 'mobile-search-hit', text: piece.text });
+            else parent.appendText(piece.text);
         }
-    }
-
-    // ── Navigation Stack ──
-
-    private pushNavState(): void {
-        const entry: NavEntry = {
-            query: this.inputEl.value,
-            selectedIndex: 0,
-        };
-
-        if (this.navPos < this.navStack.length - 1) {
-            this.navStack = this.navStack.slice(0, this.navPos + 1);
-        }
-
-        this.navStack.push(entry);
-        this.navPos = this.navStack.length - 1;
-        this.updateNavButtons();
-    }
-
-    private navigateBack(): void {
-        if (this.navPos <= 0) return;
-        this.navPos--;
-        this.restoreNavState();
-    }
-
-    private navigateForward(): void {
-        if (this.navPos >= this.navStack.length - 1) return;
-        this.navPos++;
-        this.restoreNavState();
-    }
-
-    private restoreNavState(): void {
-        const entry = this.navStack[this.navPos];
-        if (!entry) return;
-
-        this.navigating = true;
-        this.inputEl.value = entry.query;
-        this.results = this.plugin.searchEngine.search(entry.query);
-        this.renderResults();
-        this.navigating = false;
-        this.updateNavButtons();
-        this.updateClearButton();
-    }
-
-    private updateClearButton(): void {
-        this.clearEl.toggleClass('is-hidden', !this.inputEl.value);
-    }
-
-    private updateNavButtons(): void {
-        if (this.navBackEl) {
-            this.navBackEl.toggleClass('is-disabled', this.navPos <= 0);
-        }
-        if (this.navForwardEl) {
-            this.navForwardEl.toggleClass('is-disabled', this.navPos >= this.navStack.length - 1);
-        }
-    }
-
-    private getEditorViewFromLeaf(leaf?: WorkspaceLeaf | null): EditorView | null {
-        const targetLeaf = leaf ?? this.app.workspace.getMostRecentLeaf();
-        if (targetLeaf?.view instanceof MarkdownView) {
-            const editor = (targetLeaf.view as any)?.editor;
-            if (editor?.cm instanceof EditorView) {
-                return editor.cm;
-            }
-        }
-        return null;
     }
 
     /**
-     * Create a new note using the current search query as the filename.
+     * Dragging the list puts the keyboard away. Driven by touch rather than
+     * scroll events, which also fire when a new query re-renders the list.
      */
-    private async createNote(): Promise<void> {
-        const title = this.inputEl.value.trim();
-        if (!title) return;
-
-        // Build the file path based on settings
-        const settings = this.plugin.settings;
-        let folderPath = '';
-        if (settings.newNoteLocation === 'custom' && settings.newNoteFolder) {
-            folderPath = settings.newNoteFolder;
-        }
-
-        const filePath = normalizePath(
-            folderPath ? `${folderPath}/${title}.md` : `${title}.md`
-        );
-
-        // Duplicate guard: if the file already exists, just open it
-        const existing = this.app.vault.getFileByPath(filePath);
-        if (existing) {
-            this.close();
-            const leaf = this.app.workspace.getMostRecentLeaf();
-            if (leaf) {
-                await leaf.openFile(existing);
+    private watchListScroll(): void {
+        let startY = 0;
+        this.resultListEl.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        this.resultListEl.addEventListener('touchmove', (e) => {
+            if (Math.abs(e.touches[0].clientY - startY) > SCROLL_GESTURE_PX && document.activeElement === this.inputEl) {
+                this.inputEl.blur();
             }
-            return;
-        }
-
-        try {
-            // Ensure the folder exists
-            if (folderPath) {
-                const folderExists = this.app.vault.getFolderByPath(normalizePath(folderPath));
-                if (!folderExists) {
-                    await this.app.vault.createFolder(normalizePath(folderPath));
-                }
-            }
-
-            const newFile = await this.app.vault.create(filePath, '');
-            this.close();
-            const leaf = this.app.workspace.getMostRecentLeaf();
-            if (leaf) {
-                await leaf.openFile(newFile);
-
-                // Focus the editor
-                setTimeout(() => {
-                    if (leaf.view instanceof MarkdownView) {
-                        leaf.view.editor.focus();
-                    }
-                }, 50);
-            }
-        } catch (err) {
-            new Notice(`Failed to create note: ${err}`);
-        }
+        }, { passive: true });
     }
 }

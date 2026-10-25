@@ -259,17 +259,24 @@
 
 /* ─── Mobile result list ──────────────────────────────────────── */
 
+/*
+ * Bottom-up: column-reverse puts the first row nearest the capsule, so
+ * the current note sits right above it and results read upward.
+ */
 .mobile-search-results {
 	flex: 1;
+	display: flex;
+	flex-direction: column-reverse;
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;
 	min-height: 0;
 	padding: var(--safe-area-inset-top, 0px) 0 4px;
 }
 
-.mobile-search-result-item {
+.mobile-search-results .mobile-search-row {
 	display: flex;
 	flex-wrap: wrap;
+	flex-shrink: 0;
 	align-items: baseline;
 	gap: 2px 8px;
 	padding: 12px 16px;
@@ -277,14 +284,37 @@
 	cursor: pointer;
 	font-size: 15px;
 	color: var(--text-normal);
-	border-bottom: 1px solid var(--background-modifier-border-focus);
+	border-top: 1px solid var(--background-modifier-border-focus);
+	-webkit-tap-highlight-color: transparent;
 }
 
-.mobile-search-result-item:active {
+.mobile-search-results .mobile-search-row:active {
 	background: var(--background-modifier-hover);
 }
 
-.mobile-search-result-snippet {
+.mobile-search-row-title {
+	flex: 1;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mobile-search-row-title.is-filename-match {
+	font-weight: 600;
+}
+
+.mobile-search-row-folder {
+	flex-shrink: 0;
+	max-width: 40%;
+	font-size: 11px;
+	color: var(--text-faint);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mobile-search-row-snippet {
 	flex: 0 0 100%;
 	font-size: 13px;
 	color: var(--text-muted);
@@ -296,12 +326,30 @@
 	overflow: hidden;
 }
 
-.mobile-search-snippet-hit {
+.mobile-search-hit {
 	color: var(--text-normal);
 	font-weight: 600;
 }
 
-.mobile-search-empty {
+.mobile-search-results .mobile-search-row-current,
+.mobile-search-results .mobile-search-row-create {
+	color: var(--text-muted);
+}
+
+.mobile-search-row-icon {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+	color: var(--text-faint);
+}
+
+.mobile-search-row-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.mobile-search-results .mobile-search-empty {
+	flex-shrink: 0;
 	padding: 24px 16px;
 	text-align: center;
 	color: var(--text-faint);
@@ -336,14 +384,12 @@
 
 /* ─── Create new note row ─────────────────────────────────────── */
 
-.omnibar-create-item,
-.mobile-search-create-item {
+.omnibar-create-item {
 	color: var(--text-muted);
 	border-top: 1px solid var(--background-modifier-border);
 }
 
-.omnibar-create-item:hover,
-.mobile-search-create-item:active {
+.omnibar-create-item:hover {
 	color: var(--text-normal);
 }
 
