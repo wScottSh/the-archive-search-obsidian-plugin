@@ -23,7 +23,9 @@ function recorder() {
     const workspace: Workspace = {
         preview: (file, terms) => calls.push({ method: 'preview', file, terms }),
         land: (file, terms) => calls.push({ method: 'land', file, terms }),
-        create: (title) => calls.push({ method: 'create', title }),
+        create: async (title) => {
+            calls.push({ method: 'create', title });
+        },
         openFileMenu: () => calls.push({ method: 'openFileMenu' }),
     };
     return { calls, workspace };

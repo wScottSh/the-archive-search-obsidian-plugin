@@ -26,7 +26,7 @@ export interface Workspace {
     /** Open the file with matches highlighted, cursor at the first match, editor focused. */
     land(file: TFile, terms: string[]): void;
     /** Create the note in the configured location, or open it if it already exists. */
-    create(title: string): void;
+    create(title: string): Promise<void>;
     /** Show Obsidian's file menu for the files at a screen position. */
     openFileMenu(files: TFile[], position: { x: number; y: number }): void;
 }
@@ -123,7 +123,7 @@ export class SearchSession {
     land(index = this.activeIndex): void {
         const row = this.rows()[index];
         if (!row) return;
-        if (row.kind === 'create') this.workspace.create(row.title);
+        if (row.kind === 'create') void this.workspace.create(row.title);
         else this.workspace.land(row.file, this.terms(index));
     }
 
