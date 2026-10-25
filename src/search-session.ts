@@ -38,6 +38,9 @@ export interface Searcher {
 
 // ─── History ─────────────────────────────────────────────────────
 
+/** How many recent queries `recents()` offers. */
+export const RECENT_LIMIT = 8;
+
 /** A query change within this window of the last push replaces that entry. */
 export const HISTORY_MERGE_MS = 1200;
 
@@ -77,6 +80,9 @@ export class SearchSession {
     open(currentNote: TFile | null, query = ''): void {
         this.currentNote = currentNote;
         this.query = query;
+        // A reopened search starts a fresh entry rather than merging into the last one
+        const top = this.history[this.historyPos];
+        if (top) top.at = 0;
         this.run(true);
     }
 
@@ -148,11 +154,25 @@ export class SearchSession {
         if (this.canForward) this.restore(this.historyPos + 1);
     }
 
+    /** Distinct queries the user paused on, most recent first. */
+    recents(): string[] {
+        const seen = new Set<string>();
+        const queries: string[] = [];
+        for (let i = this.history.length - 1; i >= 0 && queries.length < RECENT_LIMIT; i--) {
+            const query = this.history[i].query.trim();
+            if (query && !seen.has(query)) {
+                seen.add(query);
+                queries.push(query);
+            }
+        }
+        return queries;
+    }
+
     private restore(pos: number): void {
         this.historyPos = pos;
         const entry = this.history[pos];
         this.query = entry.query;
-        this.run(false);
+        this.search();
         this.activeIndex = Math.min(entry.active, Math.max(0, this.rows().length - 1));
         // Typing after Back starts a fresh entry rather than merging into this one
         entry.at = 0;
@@ -196,11 +216,15 @@ export class SearchSession {
         this.activeIndex = index + (this.currentNote ? 1 : 0);
     }
 
-    private run(record: boolean): void {
+    private search(): void {
         this.results = this.engine.search(this.query);
         this.activeIndex = 0;
         this.exactTitle = null;
         this.promoteExactTitle();
+    }
+
+    private run(record: boolean): void {
+        this.search();
         if (record && this.query.trim()) this.pushHistory();
         this.emit();
     }

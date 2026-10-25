@@ -305,6 +305,33 @@
 	padding: var(--safe-area-inset-top, 0px) 0 4px;
 }
 
+.mobile-search-results .mobile-search-recents {
+	display: flex;
+	flex-wrap: wrap;
+	flex-shrink: 0;
+	gap: 6px;
+	padding: 8px 16px;
+}
+
+.mobile-search-recents .mobile-search-chip {
+	max-width: 100%;
+	height: auto;
+	min-height: 32px;
+	padding: 4px 12px;
+	border-radius: 16px;
+	font-size: 13px;
+	color: var(--text-muted);
+	background: var(--background-secondary);
+	box-shadow: none;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mobile-search-recents .mobile-search-chip:active {
+	background: var(--background-modifier-hover);
+}
+
 .mobile-search-results .mobile-search-row {
 	display: flex;
 	flex-wrap: wrap;

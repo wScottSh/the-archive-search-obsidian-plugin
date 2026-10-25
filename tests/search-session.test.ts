@@ -291,6 +291,71 @@ describe('SearchSession history', () => {
     });
 });
 
+describe('SearchSession history details', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        vi.setSystemTime(1_000_000);
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('never pushes an identical query twice', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'apple');
+        vi.advanceTimersByTime(HISTORY_MERGE_MS + 1);
+        session.setQuery('apple ');
+        expect(session.canBack).toBe(false);
+        expect(session.recents()).toEqual(['apple']);
+    });
+
+    it('back and forward notify subscribers once and do nothing at the ends', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'apple');
+        vi.advanceTimersByTime(HISTORY_MERGE_MS + 1);
+        session.setQuery('banana');
+        const fn = vi.fn();
+        session.subscribe(fn);
+        session.forward();
+        expect(fn).not.toHaveBeenCalled();
+        session.back();
+        expect(fn).toHaveBeenCalledTimes(1);
+        session.back();
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps history when the session is reopened', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'apple');
+        vi.advanceTimersByTime(HISTORY_MERGE_MS + 1);
+        session.setQuery('banana');
+        session.open(null);
+        expect(session.getQuery()).toBe('');
+        session.setQuery('cherry');
+        expect(session.recents()).toEqual(['cherry', 'banana', 'apple']);
+        session.back();
+        expect(session.getQuery()).toBe('banana');
+    });
+
+    it('lists recents most recent first, distinct, capped', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null);
+        for (const q of ['a1', 'b1', 'a1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1', 'i1']) {
+            session.setQuery(q);
+            vi.advanceTimersByTime(HISTORY_MERGE_MS + 1);
+        }
+        expect(session.recents()).toEqual(['i1', 'h1', 'g1', 'f1', 'e1', 'd1', 'c1', 'a1']);
+    });
+
+    it('rerunning a recent query searches it', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'banana');
+        session.setQuery('');
+        session.setQuery(session.recents()[0]);
+        expect(shape(session)).toEqual(['Banana', 'create']);
+    });
+});
+
 describe('highlightPieces', () => {
     it('flags case-insensitive hits and keeps original case', () => {
         expect(highlightPieces('An Apple pie', ['apple'])).toEqual([

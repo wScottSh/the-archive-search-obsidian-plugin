@@ -15,12 +15,15 @@ import {
 	ArchiveSearchSettingTab,
 } from './src/settings';
 import { registerWikiLinkDomHandler, createWikiLinkEditorExtension } from './src/wiki-link-handler';
+import { SearchSession } from './src/search-session';
 import { MobileSearchModal } from './src/mobile-search-modal';
 import { searchHighlightField } from './src/editor-highlight';
 
 export default class TheArchiveSearchPlugin extends Plugin {
 	settings: ArchiveSearchSettings;
 	searchEngine: SearchEngine;
+	/** One mobile search session per plugin instance, so history outlives the modal. */
+	mobileSession: SearchSession | null = null;
 	private ribbonIconEl: HTMLElement | null = null;
 
 	async onload(): Promise<void> {
