@@ -177,6 +177,30 @@ export class SearchSession {
         this.emit();
     }
 
+    /** Select every note between two rows, inclusive, entering selection mode. The create row is skipped. */
+    selectRange(from: number, to: number): void {
+        const rows = this.rows();
+        const start = Math.max(0, Math.min(from, to));
+        const end = Math.min(rows.length - 1, Math.max(from, to));
+        this.selecting = true;
+        for (let i = start; i <= end; i++) {
+            const row = rows[i];
+            if (row.kind !== 'create') this.selected.add(row.file);
+        }
+        this.emit();
+    }
+
+    /** Move the active row by `delta` without previewing it, selecting every note passed over, the starting row included. */
+    extendSelection(delta: number): void {
+        const rows = this.rows();
+        if (rows.length === 0) return;
+        const from = this.activeIndex;
+        this.activeIndex = Math.max(0, Math.min(rows.length - 1, from + delta));
+        const entry = this.history[this.historyPos];
+        if (entry) entry.active = this.activeIndex;
+        this.selectRange(from, this.activeIndex);
+    }
+
     /** Drop the selection and leave selection mode. */
     clearSelection(): void {
         this.selecting = false;

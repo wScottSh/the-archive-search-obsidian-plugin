@@ -216,7 +216,7 @@ export default class TheArchiveSearchPlugin extends Plugin {
 					view.setQuery(query);
 					// Delay focus: setQuery triggers openFile() which steals
 					// focus to the editor. Wait for that + highlights to settle.
-					setTimeout(() => view.focusInput(), 150);
+					setTimeout(() => view.focusInput(false), 150);
 				} else {
 					view.focusInput();
 				}

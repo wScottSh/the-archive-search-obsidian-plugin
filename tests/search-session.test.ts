@@ -337,6 +337,39 @@ describe('SearchSession selection', () => {
         expect(session.selectionCount).toBe(0);
     });
 
+    it('selects a range in either direction, skipping the create row', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(null, 'a');
+        expect(session.rows().at(-1)?.kind).toBe('create');
+        session.selectRange(2, 0);
+        expect(session.isSelecting).toBe(true);
+        expect(session.targetFiles()).toEqual([files.Apple, files.Banana, files.Cherry]);
+        session.clearSelection();
+        session.selectRange(1, 99);
+        expect(session.targetFiles()).toEqual([files.Banana, files.Cherry]);
+    });
+
+    it('adds a range to what is already selected', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(null);
+        session.toggleSelect(0);
+        session.selectRange(1, 2);
+        expect(session.targetFiles()).toEqual([files.Apple, files.Banana, files.Cherry]);
+    });
+
+    it('extends the selection with the active row without previewing', async () => {
+        const { session, calls, files } = await setup(NOTES);
+        session.open(null);
+        session.extendSelection(1);
+        expect(session.active).toBe(1);
+        expect(session.targetFiles()).toEqual([files.Apple, files.Banana]);
+        session.extendSelection(1);
+        expect(session.targetFiles()).toEqual([files.Apple, files.Banana, files.Cherry]);
+        session.extendSelection(5);
+        expect(session.active).toBe(2);
+        expect(calls.filter((c) => c.method === 'preview')).toEqual([]);
+    });
+
     it('opens the file menu for the targets at the given position', async () => {
         const { session, calls, files } = await setup(NOTES);
         session.open(null);
