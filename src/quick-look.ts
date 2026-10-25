@@ -117,7 +117,7 @@ export class QuickLook {
     }
 
     /**
-     * Move to the neighbouring note. Quick Look tracks its own position and
+     * Move to the neighboring note. Quick Look tracks its own position and
      * never previews through the workspace: on mobile that would swap the note
      * in the editor that Insert link targets.
      */
@@ -135,7 +135,9 @@ export class QuickLook {
         this.titleEl.setText(file.basename);
         this.positionEl.setText(`${this.position + 1} of ${items.length}`);
         this.prevEl.toggleClass('is-disabled', this.position === 0);
+        this.prevEl.setAttribute('aria-disabled', String(this.position === 0));
         this.nextEl.toggleClass('is-disabled', this.position === items.length - 1);
+        this.nextEl.setAttribute('aria-disabled', String(this.position === items.length - 1));
 
         this.bodyEl.empty();
         this.bodyEl.scrollTop = 0;
@@ -162,7 +164,7 @@ export class QuickLook {
             if (!tracking) return;
             tracking = false;
             const direction = swipeDirection(e.clientX - startX, e.clientY - startY);
-            if (direction !== 0) this.step(direction);
+            if (direction !== 0 && !globalThis.getSelection?.()?.toString()) this.step(direction);
         });
     }
 
