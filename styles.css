@@ -568,6 +568,17 @@
 	min-width: 44px;
 }
 
+.mobile-search-quicklook-position {
+	flex-shrink: 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	font-variant-numeric: tabular-nums;
+}
+
+.mobile-search-quicklook .mobile-search-quicklook-btn.is-disabled {
+	opacity: 0.35;
+}
+
 .mobile-search-quicklook-footer .mobile-search-quicklook-btn {
 	flex: 1;
 }
@@ -583,6 +594,8 @@
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
 	user-select: text;
+	/* Vertical drags scroll the note; horizontal ones reach the swipe handler */
+	touch-action: pan-y;
 }
 
 .mobile-search-quicklook-body .mobile-search-hit {

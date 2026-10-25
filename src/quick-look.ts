@@ -39,45 +39,131 @@ export function scrollToMatch(body: HTMLElement, target: HTMLElement): void {
     body.scrollTop = Math.max(0, body.scrollTop + offset - body.clientHeight * MATCH_POSITION);
 }
 
+/** Horizontal travel (px) that turns a drag on the body into a step. */
+const SWIPE_MIN_PX = 60;
+/** How much further a swipe must travel sideways than vertically to count as horizontal. */
+const SWIPE_HORIZONTAL_RATIO = 2;
+
+/**
+ * Which way a drag steps: 1 for next (finger moved left), -1 for previous
+ * (finger moved right), 0 when it was too short or too vertical to be a swipe.
+ */
+export function swipeDirection(dx: number, dy: number): -1 | 0 | 1 {
+    if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * SWIPE_HORIZONTAL_RATIO) return 0;
+    return dx < 0 ? 1 : -1;
+}
+
+/** A file row Quick Look can show: the note and where its row sits in the list. */
+export interface QuickLookItem {
+    file: TFile;
+    index: number;
+}
+
 export interface QuickLookOptions {
     app: App;
-    file: TFile;
+    /** File rows only, in list order; the create row is never an item. */
+    items: QuickLookItem[];
+    /** Position in `items` to show first. */
+    start: number;
     terms: string[];
-    /** Footer Open: land on the note, the same as tapping its row. */
-    onOpen: () => void;
+    /** Footer Open: land on the row of the note being shown, the same as tapping it. */
+    onOpen: (index: number) => void;
     /** Quick Look went away; the list underneath was never touched. */
     onClose: () => void;
 }
 
 export class QuickLook {
     private overlayEl: HTMLElement;
+    private titleEl: HTMLElement;
+    private positionEl: HTMLElement;
+    private prevEl: HTMLElement;
+    private nextEl: HTMLElement;
+    private bodyEl: HTMLElement;
+    private position: number;
     private closed = false;
 
     constructor(parent: HTMLElement, private options: QuickLookOptions) {
-        const { file } = options;
+        this.position = options.start;
         this.overlayEl = parent.createDiv({ cls: 'mobile-search-quicklook' });
 
         // ── Header ──
         const headerEl = this.overlayEl.createDiv({ cls: 'mobile-search-quicklook-header' });
-        headerEl.createSpan({ cls: 'mobile-search-quicklook-title', text: file.basename });
-        // Prev/next stepping between results (#12) belongs here, beside the title
+        this.prevEl = this.createButton(headerEl, 'chevron-left', 'Previous result', () => this.step(-1));
+        this.nextEl = this.createButton(headerEl, 'chevron-right', 'Next result', () => this.step(1));
+        this.titleEl = headerEl.createSpan({ cls: 'mobile-search-quicklook-title' });
+        this.positionEl = headerEl.createSpan({ cls: 'mobile-search-quicklook-position' });
         this.createButton(headerEl, 'x', 'Close Quick Look', () => this.close());
 
         // ── Body ──
-        const bodyEl = this.overlayEl.createDiv({ cls: 'mobile-search-quicklook-body' });
-        void options.app.vault.cachedRead(file).then((text) => {
-            if (!this.closed) this.renderText(bodyEl, text);
-        });
+        this.bodyEl = this.overlayEl.createDiv({ cls: 'mobile-search-quicklook-body' });
+        this.watchSwipe(this.bodyEl);
 
         // ── Footer ──
         const footerEl = this.overlayEl.createDiv({ cls: 'mobile-search-quicklook-footer' });
         this.createButton(footerEl, 'link', 'Insert link', () => {
-            if (insertLink(options.app, file)) this.close();
+            if (insertLink(options.app, this.current.file)) this.close();
         }, 'Insert link');
         this.createButton(footerEl, 'file-input', 'Open', () => {
+            const { index } = this.current;
             this.close();
-            options.onOpen();
+            options.onOpen(index);
         }, 'Open').addClass('mod-cta');
+
+        this.show();
+    }
+
+    private get current(): QuickLookItem {
+        return this.options.items[this.position];
+    }
+
+    /**
+     * Move to the neighbouring note. Quick Look tracks its own position and
+     * never previews through the workspace: on mobile that would swap the note
+     * in the editor that Insert link targets.
+     */
+    step(direction: -1 | 1): void {
+        const next = this.position + direction;
+        if (this.closed || next < 0 || next >= this.options.items.length) return;
+        this.position = next;
+        this.show();
+    }
+
+    /** Show the current note: title, "n of N", button states, and a fresh body. */
+    private show(): void {
+        const { file } = this.current;
+        const { items } = this.options;
+        this.titleEl.setText(file.basename);
+        this.positionEl.setText(`${this.position + 1} of ${items.length}`);
+        this.prevEl.toggleClass('is-disabled', this.position === 0);
+        this.nextEl.toggleClass('is-disabled', this.position === items.length - 1);
+
+        this.bodyEl.empty();
+        this.bodyEl.scrollTop = 0;
+        // A step can land before the previous read resolves; only the latest note renders
+        void this.options.app.vault.cachedRead(file).then((text) => {
+            if (!this.closed && this.current.file === file) this.renderText(this.bodyEl, text);
+        });
+    }
+
+    /** Horizontal swipe on the body steps; vertical drags are left to scroll the note. */
+    private watchSwipe(bodyEl: HTMLElement): void {
+        let startX = 0;
+        let startY = 0;
+        let tracking = false;
+        bodyEl.addEventListener('pointerdown', (e) => {
+            tracking = true;
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+        bodyEl.addEventListener('pointercancel', () => {
+            tracking = false;
+        });
+        bodyEl.addEventListener('pointerup', (e) => {
+            if (!tracking) return;
+            tracking = false;
+            const direction = swipeDirection(e.clientX - startX, e.clientY - startY);
+            if (direction !== 0) this.step(direction);
+        });
     }
 
     close(): void {
@@ -101,7 +187,9 @@ export class QuickLook {
         setIcon(buttonEl.createSpan(), icon);
         if (text) buttonEl.appendText(text);
         buttonEl.setAttribute('aria-label', label);
-        buttonEl.addEventListener('click', onClick);
+        buttonEl.addEventListener('click', () => {
+            if (!buttonEl.hasClass('is-disabled')) onClick();
+        });
         return buttonEl;
     }
 }
