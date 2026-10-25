@@ -19,14 +19,14 @@ function makeFile(basename: string): TFile {
 
 /** Workspace adapter that records its calls. */
 function recorder() {
-    const calls: Array<{ method: string; file?: TFile; terms?: string[]; title?: string }> = [];
+    const calls: Array<{ method: string; file?: TFile; terms?: string[]; title?: string; files?: TFile[] }> = [];
     const workspace: Workspace = {
         preview: (file, terms) => calls.push({ method: 'preview', file, terms }),
         land: (file, terms) => calls.push({ method: 'land', file, terms }),
         create: async (title) => {
             calls.push({ method: 'create', title });
         },
-        openFileMenu: () => calls.push({ method: 'openFileMenu' }),
+        openFileMenu: (files) => calls.push({ method: 'openFileMenu', files }),
     };
     return { calls, workspace };
 }
@@ -183,6 +183,111 @@ describe('SearchSession subscribe', () => {
         off();
         session.setQuery('banana');
         expect(fn).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('SearchSession selection', () => {
+    it('toggles a note in and out, entering and keeping selection mode', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(null);
+        expect(session.isSelecting).toBe(false);
+        session.toggleSelect(1);
+        expect(session.isSelecting).toBe(true);
+        expect(session.isSelected(1)).toBe(true);
+        expect(session.targetFiles()).toEqual([files.Banana]);
+        session.toggleSelect(1);
+        expect(session.isSelected(1)).toBe(false);
+        expect(session.selectionCount).toBe(0);
+        expect(session.isSelecting).toBe(true);
+    });
+
+    it('notifies subscribers on every selection change', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null);
+        const listener = vi.fn();
+        session.subscribe(listener);
+        session.beginSelect();
+        session.toggleSelect(0);
+        session.selectAll();
+        session.clearSelection();
+        expect(listener).toHaveBeenCalledTimes(4);
+    });
+
+    it('selects every note once, skipping the create row and the duplicate of the current note', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(files.Apple, 'a');
+        session.selectAll();
+        expect(session.targetFiles()).toEqual([files.Apple, files.Banana, files.Cherry]);
+        expect(session.selectionCount).toBe(3);
+        expect(session.isSelected(session.rows().length - 1)).toBe(false);
+    });
+
+    it('selecting the current note row selects its result row too', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(files.Apple);
+        session.toggleSelect(0);
+        expect(session.isSelected(0)).toBe(true);
+        expect(session.isSelected(1)).toBe(true);
+        expect(session.targetFiles()).toEqual([files.Apple]);
+    });
+
+    it('ignores the create row', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'nothing matches this');
+        session.toggleSelect(0);
+        expect(session.isSelecting).toBe(false);
+        expect(session.selectionCount).toBe(0);
+    });
+
+    it('clears the selection and leaves selection mode', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null);
+        session.selectAll();
+        session.clearSelection();
+        expect(session.isSelecting).toBe(false);
+        expect(session.selectionCount).toBe(0);
+    });
+
+    it('targets the selection in list order, not click order', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(null);
+        session.toggleSelect(2);
+        session.toggleSelect(0);
+        expect(session.targetFiles()).toEqual([files.Apple, files.Cherry]);
+    });
+
+    it('falls back to the active note when nothing is selected', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(null);
+        expect(session.targetFiles()).toEqual([files.Apple]);
+        session.activate(2);
+        expect(session.targetFiles()).toEqual([files.Cherry]);
+        session.beginSelect();
+        expect(session.targetFiles()).toEqual([files.Cherry]);
+    });
+
+    it('has no target when the active row is the create row', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null, 'nothing matches this');
+        expect(session.targetFiles()).toEqual([]);
+    });
+
+    it('drops the selection when the query changes', async () => {
+        const { session } = await setup(NOTES);
+        session.open(null);
+        session.selectAll();
+        session.setQuery('apple');
+        expect(session.isSelecting).toBe(false);
+        expect(session.selectionCount).toBe(0);
+    });
+
+    it('opens the file menu for the targets at the given position', async () => {
+        const { session, calls, files } = await setup(NOTES);
+        session.open(null);
+        session.toggleSelect(0);
+        session.toggleSelect(1);
+        session.openFileMenu({ x: 1, y: 2 });
+        expect(calls.at(-1)).toEqual({ method: 'openFileMenu', files: [files.Apple, files.Banana] });
     });
 });
 
