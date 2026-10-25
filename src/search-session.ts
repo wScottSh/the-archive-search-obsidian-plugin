@@ -24,11 +24,16 @@ export interface Workspace {
     /** Show the file in the editor without leaving search. */
     preview(file: TFile, terms: string[]): void;
     /** Open the file with matches highlighted, cursor at the first match, editor focused. */
-    land(file: TFile, terms: string[]): void;
+    land(file: TFile, terms: string[], options?: LandOptions): void;
     /** Create the note in the configured location, or open it if it already exists. */
     create(title: string): Promise<void>;
     /** Show Obsidian's file menu for the files at a screen position. */
     openFileMenu(files: TFile[], position: { x: number; y: number }): void;
+}
+
+export interface LandOptions {
+    /** Leave the opened note without search highlights. Landing keeps them by default. */
+    clearHighlights?: boolean;
 }
 
 /** The part of the search engine a session needs. */
@@ -88,6 +93,17 @@ export class SearchSession {
         this.run(true);
     }
 
+    /**
+     * Re-pin the note the user is on without rerunning the search.
+     * The active row stays on the same entry; the list shifts by the pinned row.
+     */
+    setCurrentNote(currentNote: TFile | null): void {
+        const shift = (currentNote ? 1 : 0) - (this.currentNote ? 1 : 0);
+        this.currentNote = currentNote;
+        this.activeIndex = Math.max(0, this.activeIndex + shift);
+        this.emit();
+    }
+
     getQuery(): string {
         return this.query;
     }
@@ -131,11 +147,11 @@ export class SearchSession {
     }
 
     /** Commit to a row: open its note, or create the note for the create row. */
-    land(index = this.activeIndex): void {
+    land(index = this.activeIndex, options: LandOptions = {}): void {
         const row = this.rows()[index];
         if (!row) return;
         if (row.kind === 'create') void this.workspace.create(row.title);
-        else this.workspace.land(row.file, this.terms(index));
+        else this.workspace.land(row.file, this.terms(index), options);
     }
 
     // ── Selection ──

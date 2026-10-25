@@ -19,10 +19,11 @@ function makeFile(basename: string): TFile {
 
 /** Workspace adapter that records its calls. */
 function recorder() {
-    const calls: Array<{ method: string; file?: TFile; terms?: string[]; title?: string; files?: TFile[] }> = [];
+    const calls: Array<{ method: string; file?: TFile; terms?: string[]; title?: string; files?: TFile[]; options?: unknown }> = [];
     const workspace: Workspace = {
         preview: (file, terms) => calls.push({ method: 'preview', file, terms }),
-        land: (file, terms) => calls.push({ method: 'land', file, terms }),
+        land: (file, terms, options) =>
+            calls.push({ method: 'land', file, terms, ...(options?.clearHighlights ? { options } : {}) }),
         create: async (title) => {
             calls.push({ method: 'create', title });
         },
@@ -156,6 +157,29 @@ describe('SearchSession activate and land', () => {
         calls.length = 0;
         session.land();
         expect(calls).toEqual([{ method: 'land', file: files.Cherry, terms: ['appl'] }]);
+    });
+});
+
+describe('SearchSession land options and re-pinning', () => {
+    it('passes land options through to the workspace', async () => {
+        const { session, calls } = await setup(NOTES);
+        session.open(null, 'apple');
+        session.land(0, { clearHighlights: true });
+        session.land(0);
+        const lands = calls.filter((c) => c.method === 'land');
+        expect(lands[0].options).toEqual({ clearHighlights: true });
+        expect(lands[1].options).toBeUndefined();
+    });
+
+    it('re-pins the current note without rerunning the search or moving the active note', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(null, 'apple');
+        session.activate(1);
+        const before = session.rows()[1];
+        session.setCurrentNote(files.Banana);
+        expect(session.rows()[0]).toMatchObject({ kind: 'current', file: files.Banana });
+        expect(session.rows()[session.active]).toEqual(before);
+        expect(session.getQuery()).toBe('apple');
     });
 });
 

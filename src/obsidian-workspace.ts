@@ -8,7 +8,7 @@
 import { App, MarkdownView, Menu, Notice, TFile, WorkspaceLeaf, normalizePath } from 'obsidian';
 import { EditorView } from '@codemirror/view';
 import type { ArchiveSearchSettings } from './settings';
-import type { Workspace } from './search-session';
+import type { Workspace, LandOptions } from './search-session';
 import { highlightInEditor, clearHighlightsInEditor } from './editor-highlight';
 
 /** Time for a freshly opened file to load before touching its editor. */
@@ -31,14 +31,15 @@ export class ObsidianWorkspace implements Workspace {
         });
     }
 
-    land(file: TFile, terms: string[]): void {
+    land(file: TFile, terms: string[], options: LandOptions = {}): void {
         const leaf = this.app.workspace.getMostRecentLeaf();
         if (!leaf) return;
         void leaf.openFile(file).then(() => {
             setTimeout(() => {
                 if (!(leaf.view instanceof MarkdownView)) return;
                 const editor = leaf.view.editor;
-                this.highlight(leaf, terms);
+                if (options.clearHighlights) this.clearHighlights();
+                else this.highlight(leaf, terms);
                 const docText = editor.getValue().toLowerCase();
                 let firstPos = Infinity;
                 for (const term of terms) {

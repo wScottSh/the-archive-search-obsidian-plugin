@@ -98,7 +98,8 @@ export class OmnibarView extends ItemView {
                 this.moveActive(e.key === 'ArrowDown' ? 1 : -1, e.shiftKey);
             } else if (e.key === 'Enter') {
                 e.preventDefault();
-                this.session.land();
+                // Enter commits to the note, so the search highlights come off
+                this.session.land(undefined, { clearHighlights: true });
             } else if (e.key === 'Escape') {
                 if (this.session.isSelecting) {
                     e.preventDefault();
@@ -122,7 +123,7 @@ export class OmnibarView extends ItemView {
      * Captures the currently-open file as the pinned "Current note" unless `repin` is false.
      */
     focusInput(repin = true): void {
-        if (repin) this.session.open(this.workspace.currentFile(), this.inputEl.value);
+        if (repin) this.session.setCurrentNote(this.workspace.currentFile());
         this.inputEl?.focus();
         this.inputEl?.select();
     }
