@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      bump:
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUMP: ${{ inputs.bump || 'patch' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Bump version
+        run: |
+          # A release commit at HEAD is already bumped. A manual run still bumps once that version has shipped.
+          if git log -1 --format=%s | grep -q '^chore(release):' &&
+             { [ "$GITHUB_EVENT_NAME" = push ] || ! gh release view "$(node -p "require('./manifest.json').version")" >/dev/null 2>&1; }; then
+            echo "HEAD is a release commit; skipping bump"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version "$BUMP" -m "chore(release): %s"
+          git push origin HEAD:master --follow-tags
+      - run: npm run build
+      - name: Publish release
+        run: |
+          V=$(node -p "require('./manifest.json').version")
+          if gh release view "$V" >/dev/null 2>&1; then
+            echo "Release $V already exists"
+          else
+            gh release create "$V" main.js manifest.json styles.css --title "$V" --generate-notes
+          fi

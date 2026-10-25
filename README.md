@@ -108,10 +108,17 @@ This plugin exists to give you fast, private, keyboard-centric search — nothin
 
 ### Using BRAT (for testing latest changes)
 
-Install via [BRAT](https://github.com/TfTHacker/obsidian42-brat) using this repository URL:
-```
-wScottSh/the-archive-search-obsidian-plugin
-```
+[BRAT](https://github.com/TfTHacker/obsidian42-brat) installs the plugin from this repository's GitHub releases and keeps it up to date. The steps are the same on desktop and mobile.
+
+1. Go to **Settings → Community plugins → Browse**, search for **BRAT**, then install and enable it.
+2. Open the command palette and run **BRAT: Plugins: Add a beta plugin for testing**.
+3. Paste this repository and select **Add plugin**:
+   ```
+   wScottSh/the-archive-search-obsidian-plugin
+   ```
+4. In **Settings → BRAT**, turn on **Auto-update plugins at startup**.
+
+To update right away, run **BRAT: Plugins: Check for updates to all beta plugins and UPDATE** from the command palette. BRAT installs the latest release and reloads the plugin.
 
 > **Note:** This plugin is not yet listed in the official Obsidian Community Plugins directory. Once it is submitted and approved, it will be installable directly from Obsidian's plugin browser.
 
@@ -127,6 +134,10 @@ npm run build
 ```
 
 Then copy the generated `main.js`, `manifest.json`, and `styles.css` into your vault's plugin folder as described above.
+
+### Releasing
+
+Every merge or push to `master` publishes a patch release. The Release workflow bumps the version, tags it, and attaches `main.js`, `manifest.json`, and `styles.css`. For a minor or major release, go to **Actions → Release → Run workflow** and pick the bump.
 
 ## Background
 
