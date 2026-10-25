@@ -3,6 +3,7 @@ import {
     trackKeyboard,
     KEYBOARD_OPEN_THRESHOLD,
     KEYBOARD_STORAGE_KEY,
+    GUESS_HOLD_MS,
     KeyboardEnv,
 } from '../src/keyboard-tracker';
 
@@ -50,6 +51,26 @@ class FakePhone extends FakeTarget {
         getPropertyValue: (name: string) => (name === '--keyboard-height' ? this.obsidianKeyboardHeight : ''),
     });
     scrollTo = (x: number, y: number) => void this.scrolledTo.push([x, y]);
+
+    private timers = new Map<number, { at: number; fn: () => void }>();
+    private nextTimer = 1;
+    private now = 0;
+    setTimeout = (fn: () => void, ms: number) => {
+        const id = this.nextTimer++;
+        this.timers.set(id, { at: this.now + ms, fn });
+        return id;
+    };
+    clearTimeout = (id: number | undefined) => void (id !== undefined && this.timers.delete(id));
+    /** Let `ms` of time pass, running any timers that come due. */
+    advance(ms: number) {
+        this.now += ms;
+        for (const [id, timer] of [...this.timers]) {
+            if (timer.at > this.now) continue;
+            this.timers.delete(id);
+            timer.fn();
+        }
+    }
+    get pendingTimers() { return this.timers.size; }
 
     focus(element: Element | null) {
         const previous = this.document.activeElement;
@@ -139,6 +160,40 @@ describe('trackKeyboard', () => {
         expect(el.keyboard).toBe('340px');
         expect(el.visible).toBe('460px');
         expect(phone.storage.get(STORED)).toBe('340');
+    });
+
+    it('a stale closed reading during the keyboard animation does not undo the guess', () => {
+        phone.storage.set(STORED, '300');
+        trackKeyboard(el, phone.asEnv());
+        phone.focus(input);
+        // iOS: the viewport has not shrunk yet, but something fires a measurement
+        phone.visualViewport.dispatch('scroll');
+        expect(el.isOpen).toBe(true);
+        expect(el.keyboard).toBe('300px');
+        phone.keyboardSettles(340);
+        expect(el.keyboard).toBe('340px');
+        expect(phone.pendingTimers).toBe(0);
+    });
+
+    it('a guess that no measurement confirms is dropped after the hold', () => {
+        phone.storage.set(STORED, '300');
+        trackKeyboard(el, phone.asEnv());
+        // A hardware keyboard: focus, but the viewport never shrinks
+        phone.focus(input);
+        phone.advance(GUESS_HOLD_MS - 1);
+        expect(el.isOpen).toBe(true);
+        phone.advance(1);
+        expect(el.isOpen).toBe(false);
+        expect(el.visible).toBe('800px');
+    });
+
+    it('blur during the hold closes at once and cancels the hold', () => {
+        phone.storage.set(STORED, '300');
+        trackKeyboard(el, phone.asEnv());
+        phone.focus(input);
+        phone.focus(null);
+        expect(el.isOpen).toBe(false);
+        expect(phone.pendingTimers).toBe(0);
     });
 
     it('first-ever open is taken from the measurement alone', () => {
@@ -268,8 +323,11 @@ describe('trackKeyboard', () => {
     });
 
     it('cleanup removes every listener', () => {
+        phone.storage.set(STORED, '300');
         const stop = trackKeyboard(el, phone.asEnv());
+        phone.focus(input);
         stop();
+        expect(phone.pendingTimers).toBe(0);
         expect(phone.count('resize')).toBe(0);
         expect(phone.count('keyboardWillShow')).toBe(0);
         expect(phone.count('keyboardWillHide')).toBe(0);

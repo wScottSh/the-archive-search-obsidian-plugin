@@ -14,7 +14,10 @@
  *
  * iOS only reports the final viewport after the keyboard animation ends, so
  * focusing a text field applies the last measured keyboard height as a
- * guess, and the real measurement corrects it when it arrives.
+ * guess, and the real measurement corrects it when it arrives. Until then,
+ * readings that still say "closed" are stale and do not undo the guess; if no
+ * open reading arrives within `GUESS_HOLD_MS` (a hardware keyboard, say), the
+ * next measurement is trusted again.
  *
  * Written on the element:
  * - `--mobile-search-visible-height`, `--mobile-search-keyboard-height`,
@@ -25,6 +28,9 @@
 
 /** Keyboard heights at or below this are not a keyboard (browser chrome, etc.). */
 export const KEYBOARD_OPEN_THRESHOLD = 120;
+
+/** How long a guessed-open keyboard outlasts readings that still say closed (ms). */
+export const GUESS_HOLD_MS = 800;
 
 export const KEYBOARD_STORAGE_KEY = 'the-archive-search-keyboard-height';
 
@@ -58,6 +64,8 @@ export interface KeyboardEnv {
     scrollTo(x: number, y: number): void;
     addEventListener(type: string, listener: (event: any) => void): void;
     removeEventListener(type: string, listener: (event: any) => void): void;
+    setTimeout(handler: () => void, ms: number): number;
+    clearTimeout(id: number | undefined): void;
 }
 
 function isTextField(element: Element | null): boolean {
@@ -79,6 +87,13 @@ export function trackKeyboard(element: KeyboardElement, env: KeyboardEnv = windo
     let baseline = env.innerHeight;
     let width = env.innerWidth;
     let open = false;
+    /** Set while a guessed-open keyboard waits for the measurement to catch up. */
+    let holdTimer: number | undefined;
+
+    const endHold = () => {
+        env.clearTimeout(holdTimer);
+        holdTimer = undefined;
+    };
 
     const storageKey = () => `${KEYBOARD_STORAGE_KEY}-${width > baseline ? 'landscape' : 'portrait'}`;
     const lastKeyboardHeight = () => Number(env.localStorage.getItem(storageKey())) || 0;
@@ -116,15 +131,29 @@ export function trackKeyboard(element: KeyboardElement, env: KeyboardEnv = windo
         // No focused text field means no keyboard, whatever a stale signal says.
         const isOpen = focused && keyboardHeight > KEYBOARD_OPEN_THRESHOLD;
 
-        if (isOpen) env.localStorage.setItem(storageKey(), String(keyboardHeight));
-        apply(isOpen ? keyboardHeight : 0, isOpen);
-
         // iOS scrolls the page to reveal the focused field; the surface already follows the visual viewport.
         if (env.scrollY !== 0) env.scrollTo(0, 0);
+
+        // Mid-animation the viewport still reads closed; keep the guess.
+        if (holdTimer !== undefined && !isOpen) return;
+        endHold();
+        if (isOpen) env.localStorage.setItem(storageKey(), String(keyboardHeight));
+        apply(isOpen ? keyboardHeight : 0, isOpen);
     };
 
     const guessOpen = (keyboardHeight: number) => {
-        if (keyboardHeight > KEYBOARD_OPEN_THRESHOLD) apply(keyboardHeight, true);
+        if (keyboardHeight <= KEYBOARD_OPEN_THRESHOLD) return;
+        apply(keyboardHeight, true);
+        endHold();
+        holdTimer = env.setTimeout(() => {
+            holdTimer = undefined;
+            measure();
+        }, GUESS_HOLD_MS);
+    };
+
+    const close = () => {
+        endHold();
+        apply(0, false);
     };
 
     const onFocusIn = (event: { target: Element | null }) => {
@@ -134,14 +163,14 @@ export function trackKeyboard(element: KeyboardElement, env: KeyboardEnv = windo
 
     const onFocusOut = (event: { relatedTarget?: Element | null }) => {
         if (!open || isTextField(event.relatedTarget ?? null)) return;
-        apply(0, false);
+        close();
     };
 
     const onKeyboardWillShow = (event: { keyboardHeight?: number }) => {
         guessOpen(event.keyboardHeight || obsidianKeyboardHeight() || lastKeyboardHeight());
     };
 
-    const onKeyboardWillHide = () => apply(0, false);
+    const onKeyboardWillHide = close;
 
     vv?.addEventListener('resize', measure);
     vv?.addEventListener('scroll', measure);
@@ -154,6 +183,7 @@ export function trackKeyboard(element: KeyboardElement, env: KeyboardEnv = windo
     measure();
 
     return () => {
+        endHold();
         vv?.removeEventListener('resize', measure);
         vv?.removeEventListener('scroll', measure);
         env.removeEventListener('resize', measure);
