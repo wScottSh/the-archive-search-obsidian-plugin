@@ -62,6 +62,8 @@ export class SearchSession {
     private history: HistoryEntry[] = [];
     private historyPos = -1;
     private listeners = new Set<() => void>();
+    private selecting = false;
+    private selected = new Set<TFile>();
 
     constructor(private engine: Searcher, private workspace: Workspace) {}
 
@@ -134,6 +136,70 @@ export class SearchSession {
         if (!row) return;
         if (row.kind === 'create') void this.workspace.create(row.title);
         else this.workspace.land(row.file, this.terms(index));
+    }
+
+    // ── Selection ──
+
+    /** Whether the session is in selection mode (rows show checkboxes). */
+    get isSelecting(): boolean {
+        return this.selecting;
+    }
+
+    get selectionCount(): number {
+        return this.selected.size;
+    }
+
+    /** Enter selection mode with nothing selected. */
+    beginSelect(): void {
+        this.selecting = true;
+        this.emit();
+    }
+
+    /** Whether the row's note is selected. Rows for the same note share one selection. */
+    isSelected(index: number): boolean {
+        const row = this.rows()[index];
+        return !!row && row.kind !== 'create' && this.selected.has(row.file);
+    }
+
+    /** Flip a row's note in or out of the selection, entering selection mode. The create row is not selectable. */
+    toggleSelect(index: number): void {
+        const row = this.rows()[index];
+        if (!row || row.kind === 'create') return;
+        this.selecting = true;
+        if (!this.selected.delete(row.file)) this.selected.add(row.file);
+        this.emit();
+    }
+
+    /** Select every note in the list, entering selection mode. */
+    selectAll(): void {
+        this.selecting = true;
+        for (const file of this.listedFiles()) this.selected.add(file);
+        this.emit();
+    }
+
+    /** Drop the selection and leave selection mode. */
+    clearSelection(): void {
+        this.selecting = false;
+        this.selected.clear();
+        this.emit();
+    }
+
+    /** The notes an action applies to: the selection in list order, else the active row's note. */
+    targetFiles(): TFile[] {
+        if (this.selected.size > 0) return this.listedFiles().filter((file) => this.selected.has(file));
+        const row = this.rows()[this.activeIndex];
+        return row && row.kind !== 'create' ? [row.file] : [];
+    }
+
+    /** Show Obsidian's file menu for the target notes. */
+    openFileMenu(position: { x: number; y: number }): void {
+        this.workspace.openFileMenu(this.targetFiles(), position);
+    }
+
+    private listedFiles(): TFile[] {
+        const files = new Set<TFile>();
+        for (const row of this.rows()) if (row.kind !== 'create') files.add(row.file);
+        return [...files];
     }
 
     // ── History ──
@@ -221,6 +287,9 @@ export class SearchSession {
         this.activeIndex = 0;
         this.exactTitle = null;
         this.promoteExactTitle();
+        // The list changed under the selection
+        this.selecting = false;
+        this.selected.clear();
     }
 
     private run(record: boolean): void {

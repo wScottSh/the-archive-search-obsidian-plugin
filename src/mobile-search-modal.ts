@@ -8,6 +8,9 @@
  *   (back/forward, input, clear, close)
  * - Go on the keyboard opens the marked row (an exact title marks its note)
  * - Tapping a row opens the note at its first match and closes search
+ * - Long-pressing a row, or the Select button, enters selection mode: rows show
+ *   checkboxes and a selection bar replaces the capsule, with Actions opening
+ *   Obsidian's own file menu for the selection
  */
 
 import { App, Modal, setIcon } from 'obsidian';
@@ -20,6 +23,10 @@ import type { SnippetPiece } from './search-engine';
 
 /** Finger travel (px) that turns a touch on the list into a scroll. */
 const SCROLL_GESTURE_PX = 8;
+/** Hold time (ms) on a row that enters selection mode. */
+const LONG_PRESS_MS = 450;
+/** Vibration (ms) confirming a long press, where the device supports it. */
+const LONG_PRESS_VIBRATE_MS = 10;
 
 export class MobileSearchModal extends Modal {
     private plugin: TheArchiveSearchPlugin;
@@ -29,12 +36,16 @@ export class MobileSearchModal extends Modal {
     private navBackEl: HTMLElement;
     private navForwardEl: HTMLElement;
     private clearEl: HTMLElement;
+    private selectionCountEl: HTMLElement;
+    private actionsEl: HTMLElement;
     private stopTrackingKeyboard: (() => void) | undefined;
     private unsubscribe: (() => void) | undefined;
 
     private initialQuery: string | undefined;
     /** Query the list was last rendered for; the list returns to the thumb when it changes. */
     private renderedQuery: string | undefined;
+    /** Set by a long press so the click that ends it does not also act; the next press resets it. */
+    private suppressClick = false;
 
     constructor(app: App, plugin: TheArchiveSearchPlugin, query?: string) {
         super(app);
@@ -83,7 +94,12 @@ export class MobileSearchModal extends Modal {
             this.inputEl.focus();
         });
 
+        this.createIconButton(capsuleEl, 'check-square', 'Select', () => {
+            this.inputEl.blur();
+            this.session.beginSelect();
+        });
         this.createIconButton(capsuleEl, 'x', 'Close', () => this.close());
+        this.createSelectionBar(dockEl);
 
         // ── Session ──
         const workspace = new ObsidianWorkspace(this.app, () => this.plugin.settings);
@@ -110,6 +126,24 @@ export class MobileSearchModal extends Modal {
         buttonEl.addEventListener('mousedown', (e) => e.preventDefault());
         buttonEl.addEventListener('click', onClick);
         return buttonEl;
+    }
+
+    /** Selection bar: replaces the capsule while selecting. */
+    private createSelectionBar(parent: HTMLElement): void {
+        const barEl = parent.createDiv({ cls: 'mobile-search-selection-bar' });
+        this.selectionCountEl = barEl.createSpan({ cls: 'mobile-search-selection-count' });
+        const addButton = (text: string, onClick: (buttonEl: HTMLElement) => void): HTMLElement => {
+            const buttonEl = barEl.createEl('button', { cls: 'mobile-search-selection-btn', text });
+            buttonEl.addEventListener('click', () => onClick(buttonEl));
+            return buttonEl;
+        };
+        addButton('Select all', () => this.session.selectAll());
+        this.actionsEl = addButton('Actions', (buttonEl) => {
+            const rect = buttonEl.getBoundingClientRect();
+            this.session.openFileMenu({ x: rect.left + rect.width / 2, y: rect.top });
+        });
+        this.actionsEl.addClass('is-primary');
+        addButton('Cancel', () => this.session.clearSelection());
     }
 
     /**
@@ -157,6 +191,10 @@ export class MobileSearchModal extends Modal {
         this.clearEl.toggleClass('is-hidden', !query);
         this.navBackEl.toggleClass('is-disabled', !this.session.canBack);
         this.navForwardEl.toggleClass('is-disabled', !this.session.canForward);
+        const selecting = this.session.isSelecting;
+        this.contentEl.toggleClass('is-selecting', selecting);
+        this.selectionCountEl.setText(`${this.session.selectionCount} selected`);
+        this.actionsEl.toggleClass('is-disabled', this.session.selectionCount === 0);
         this.renderList();
     }
 
@@ -166,6 +204,8 @@ export class MobileSearchModal extends Modal {
         const terms = this.session.terms();
         const showEmpty = query.trim() !== '' && !rows.some((row) => row.kind === 'result');
 
+        // Rebuilding the list would otherwise jump it back to the thumb end on every toggle
+        const scrollTop = this.resultListEl.scrollTop;
         this.resultListEl.empty();
         if (query.trim() === '') this.renderRecents();
         rows.forEach((row, index) => {
@@ -176,7 +216,7 @@ export class MobileSearchModal extends Modal {
         });
 
         // The list is anchored to the thumb end; a new query starts there
-        if (query !== this.renderedQuery) this.resultListEl.scrollTop = 0;
+        this.resultListEl.scrollTop = query !== this.renderedQuery ? 0 : scrollTop;
         this.renderedQuery = query;
     }
 
@@ -196,10 +236,25 @@ export class MobileSearchModal extends Modal {
         const cls = `mobile-search-row mobile-search-row-${row.kind}`;
         const rowEl = this.resultListEl.createDiv({ cls });
         if (index === this.session.active) rowEl.addClass('is-active');
+        if (row.kind !== 'create') this.watchLongPress(rowEl, index);
         rowEl.addEventListener('click', () => {
+            if (this.suppressClick) {
+                this.suppressClick = false;
+                return;
+            }
+            if (this.session.isSelecting) {
+                this.session.toggleSelect(index);
+                return;
+            }
             this.session.land(index);
             this.close();
         });
+
+        if (this.session.isSelecting && row.kind !== 'create') {
+            const checkboxEl = rowEl.createEl('input', { type: 'checkbox', cls: 'mobile-search-row-checkbox' });
+            checkboxEl.checked = this.session.isSelected(index);
+            rowEl.toggleClass('is-selected', checkboxEl.checked);
+        }
 
         if (row.kind === 'create') {
             setIcon(rowEl.createSpan({ cls: 'mobile-search-row-icon' }), 'plus');
@@ -231,6 +286,40 @@ export class MobileSearchModal extends Modal {
             if (piece.hit) parent.createSpan({ cls: 'mobile-search-hit', text: piece.text });
             else parent.appendText(piece.text);
         }
+    }
+
+    /**
+     * Holding a row selects it. Pointer events cover touch and pen as well as mouse;
+     * moving past the scroll threshold or lifting early cancels.
+     */
+    private watchLongPress(rowEl: HTMLElement, index: number): void {
+        let timer: number | undefined;
+        let startX = 0;
+        let startY = 0;
+        const cancel = () => {
+            window.clearTimeout(timer);
+            timer = undefined;
+        };
+
+        rowEl.addEventListener('pointerdown', (e) => {
+            this.suppressClick = false;
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            startX = e.clientX;
+            startY = e.clientY;
+            timer = window.setTimeout(() => {
+                timer = undefined;
+                this.suppressClick = true;
+                navigator.vibrate?.(LONG_PRESS_VIBRATE_MS);
+                this.inputEl.blur();
+                this.session.toggleSelect(index);
+            }, LONG_PRESS_MS);
+        });
+        rowEl.addEventListener('pointermove', (e) => {
+            if (Math.hypot(e.clientX - startX, e.clientY - startY) > SCROLL_GESTURE_PX) cancel();
+        });
+        for (const type of ['pointerup', 'pointercancel', 'pointerleave']) rowEl.addEventListener(type, cancel);
+        // Android shows its own menu on a long press
+        rowEl.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
     /**
