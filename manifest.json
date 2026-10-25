@@ -1,7 +1,7 @@
 {
 	"id": "the-archive-search",
 	"name": "The Archive Search",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"minAppVersion": "1.0.0",
 	"description": "Replicate The Archive's Omnibar search: boolean queries, wiki-link-as-search, real-time filtering, and note creation.",
 	"author": "Scott Sheppard",
