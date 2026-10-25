@@ -19,7 +19,7 @@ Wiki-links become search queries: clicking `[[some topic]]` doesn't open a file 
 - **Wiki-link interception** — `[[links]]` trigger a search instead of Obsidian's default open-or-create (works in both Live Preview and Reading mode)
 - **Selection search** — select text in the editor, press the hotkey, and it searches immediately
 - **Folder path display** — each result shows its folder path on the right
-- **Navigation stack** — unlimited back/forward history, like a browser
+- **Navigation stack** — back/forward walk the queries you paused on, like a browser. Typing doesn't add an entry per keystroke
 - **Configurable sort** — alphabetical (A→Z, Z→A), date created, or date modified
 - **Folder exclusion** — exclude specific folders from the index, with autocomplete folder picker. Optionally respects Obsidian's native excluded files setting
 
@@ -30,7 +30,7 @@ Wiki-links become search queries: clicking `[[some topic]]` doesn't open a file 
 | Open/focus Omnibar | Assign a hotkey to **Focus Omnibar** (or click the ribbon icon). If text is selected, it auto-searches |
 | Search | Just type |
 | Browse results | <kbd>↑</kbd> / <kbd>↓</kbd> |
-| Navigate back/forward | ◀ / ▶ buttons in the Omnibar header |
+| Navigate back/forward | ◀ / ▶ buttons in the Omnibar header. Each step restores a paused query, not every keystroke |
 
 ## Search syntax
 
@@ -59,12 +59,18 @@ Wiki-links become search queries: clicking `[[some topic]]` doesn't open a file 
 
 ## Mobile
 
-On phones and tablets, the Omnibar opens as a full-screen search modal instead of a sidebar pane.
+On phones and tablets, the Omnibar opens as a full-screen search modal instead of a sidebar pane. The search field is docked at the bottom, in reach of your thumb, and rides on top of the keyboard.
 
-- **Tap a result** to open the note (with rich landing: highlights + cursor at first match)
+- **Bottom-up results** — the first row sits right above the search field and results read upward. Your current note is pinned at the bottom of the results
+- **Operator buttons** — while the keyboard is open, a row above the field inserts `" "`, `( )`, `OR`, `NOT` (as `!`) and `#`. Quotes and parentheses wrap selected text; NOT prefixes it
+- **Open a note** — tap a result, or press **Go** on the keyboard to open the marked row. Both open the note with highlights and the cursor at the first match, and close search. Typing a note's exact title marks that note
+- **Create a note** — a **Create new note** row ends the list for any non-blank query. Tap it to create the note, or open it if it already exists
+- **Select** — long-press a row, or tap the select button, to show checkboxes. **Select all** and **Actions** (Obsidian's own file menu for the selected notes) replace the search field until you tap **Cancel**
+- **Quick Look** — the eye on a row shows the whole note with matches highlighted, scrolled to the first match. Step with the arrows or a horizontal swipe. **Insert link** adds a link at the cursor of the note you came from; **Open** lands on the note shown
+- **Back/forward** — the ◀ / ▶ buttons in the search field walk the queries you paused on, not every keystroke. History outlives closing the modal
+- **Recent searches** — with an empty field, chips for your latest queries sit above the field. Tap one to run it
+- **Escape or back** — backs out one level: Quick Look, then selection, then search
 - **Wiki-links and hashtags** route to the modal automatically
-- **Real-time filtering** works the same as desktop — results update on every keystroke
-- **Back/forward navigation** is preserved via header buttons
 - **Content previews** (enabled by default): short match snippets appear under each result so you can preview context without leaving the modal. Controlled by the "Show content previews on mobile" setting. Variable-height rows stay comfortable and touch-friendly (0, 1, or 2 snippet lines).
 
 ### Adding to your mobile toolbar
