@@ -8,8 +8,8 @@
 import { App, MarkdownView, Menu, Notice, TFile, WorkspaceLeaf, normalizePath } from 'obsidian';
 import { EditorView } from '@codemirror/view';
 import type { ArchiveSearchSettings } from './settings';
-import type { Workspace } from './search-session';
-import { highlightInEditor } from './editor-highlight';
+import type { Workspace, LandOptions } from './search-session';
+import { highlightInEditor, clearHighlightsInEditor } from './editor-highlight';
 
 /** Time for a freshly opened file to load before touching its editor. */
 const EDITOR_READY_MS = 120;
@@ -31,14 +31,15 @@ export class ObsidianWorkspace implements Workspace {
         });
     }
 
-    land(file: TFile, terms: string[]): void {
+    land(file: TFile, terms: string[], options: LandOptions = {}): void {
         const leaf = this.app.workspace.getMostRecentLeaf();
         if (!leaf) return;
         void leaf.openFile(file).then(() => {
             setTimeout(() => {
                 if (!(leaf.view instanceof MarkdownView)) return;
                 const editor = leaf.view.editor;
-                this.highlight(leaf, terms);
+                if (options.clearHighlights) this.clearHighlights();
+                else this.highlight(leaf, terms);
                 const docText = editor.getValue().toLowerCase();
                 let firstPos = Infinity;
                 for (const term of terms) {
@@ -92,10 +93,22 @@ export class ObsidianWorkspace implements Workspace {
         menu.showAtPosition(position);
     }
 
+    /** Remove search highlights from the note in the main editor. */
+    clearHighlights(): void {
+        const cm = this.editorView(this.app.workspace.getMostRecentLeaf());
+        if (cm) clearHighlightsInEditor(cm);
+    }
+
     private highlight(leaf: WorkspaceLeaf, terms: string[]): void {
         if (!this.getSettings().highlightMatches || terms.length === 0) return;
-        const editor = leaf.view instanceof MarkdownView ? leaf.view.editor : null;
+        const cm = this.editorView(leaf);
+        if (cm) highlightInEditor(cm, terms);
+    }
+
+    /** The CodeMirror view of a leaf's markdown editor. Checks for MarkdownView so a sidebar with focus is never mistaken for it. */
+    private editorView(leaf: WorkspaceLeaf | null): EditorView | null {
+        const editor = leaf?.view instanceof MarkdownView ? leaf.view.editor : null;
         const cm = (editor as { cm?: unknown } | null)?.cm;
-        if (cm instanceof EditorView) highlightInEditor(cm, terms);
+        return cm instanceof EditorView ? cm : null;
     }
 }

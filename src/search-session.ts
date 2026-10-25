@@ -24,11 +24,16 @@ export interface Workspace {
     /** Show the file in the editor without leaving search. */
     preview(file: TFile, terms: string[]): void;
     /** Open the file with matches highlighted, cursor at the first match, editor focused. */
-    land(file: TFile, terms: string[]): void;
+    land(file: TFile, terms: string[], options?: LandOptions): void;
     /** Create the note in the configured location, or open it if it already exists. */
     create(title: string): Promise<void>;
     /** Show Obsidian's file menu for the files at a screen position. */
     openFileMenu(files: TFile[], position: { x: number; y: number }): void;
+}
+
+export interface LandOptions {
+    /** Leave the opened note without search highlights. Landing keeps them by default. */
+    clearHighlights?: boolean;
 }
 
 /** The part of the search engine a session needs. */
@@ -88,6 +93,19 @@ export class SearchSession {
         this.run(true);
     }
 
+    /**
+     * Re-pin the note the user is on without rerunning the search.
+     * The active row stays on the same entry; the list shifts by the pinned row.
+     */
+    setCurrentNote(currentNote: TFile | null): void {
+        const shift = (currentNote ? 1 : 0) - (this.currentNote ? 1 : 0);
+        this.currentNote = currentNote;
+        this.activeIndex = Math.max(0, Math.min(this.rows().length - 1, this.activeIndex + shift));
+        const entry = this.history[this.historyPos];
+        if (entry) entry.active = this.activeIndex;
+        this.emit();
+    }
+
     getQuery(): string {
         return this.query;
     }
@@ -131,11 +149,11 @@ export class SearchSession {
     }
 
     /** Commit to a row: open its note, or create the note for the create row. */
-    land(index = this.activeIndex): void {
+    land(index = this.activeIndex, options: LandOptions = {}): void {
         const row = this.rows()[index];
         if (!row) return;
         if (row.kind === 'create') void this.workspace.create(row.title);
-        else this.workspace.land(row.file, this.terms(index));
+        else this.workspace.land(row.file, this.terms(index), options);
     }
 
     // ── Selection ──
@@ -175,6 +193,30 @@ export class SearchSession {
         this.selecting = true;
         for (const file of this.listedFiles()) this.selected.add(file);
         this.emit();
+    }
+
+    /** Select every note between two rows, inclusive, entering selection mode. The create row is skipped. */
+    selectRange(from: number, to: number): void {
+        const rows = this.rows();
+        const start = Math.max(0, Math.min(from, to));
+        const end = Math.min(rows.length - 1, Math.max(from, to));
+        this.selecting = true;
+        for (let i = start; i <= end; i++) {
+            const row = rows[i];
+            if (row.kind !== 'create') this.selected.add(row.file);
+        }
+        this.emit();
+    }
+
+    /** Move the active row by `delta` without previewing it, selecting every note passed over, the starting row included. */
+    extendSelection(delta: number): void {
+        const rows = this.rows();
+        if (rows.length === 0) return;
+        const from = this.activeIndex;
+        this.activeIndex = Math.max(0, Math.min(rows.length - 1, from + delta));
+        const entry = this.history[this.historyPos];
+        if (entry) entry.active = this.activeIndex;
+        this.selectRange(from, this.activeIndex);
     }
 
     /** Drop the selection and leave selection mode. */

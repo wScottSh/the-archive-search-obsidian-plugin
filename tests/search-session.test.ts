@@ -19,10 +19,11 @@ function makeFile(basename: string): TFile {
 
 /** Workspace adapter that records its calls. */
 function recorder() {
-    const calls: Array<{ method: string; file?: TFile; terms?: string[]; title?: string; files?: TFile[] }> = [];
+    const calls: Array<{ method: string; file?: TFile; terms?: string[]; title?: string; files?: TFile[]; options?: unknown }> = [];
     const workspace: Workspace = {
         preview: (file, terms) => calls.push({ method: 'preview', file, terms }),
-        land: (file, terms) => calls.push({ method: 'land', file, terms }),
+        land: (file, terms, options) =>
+            calls.push({ method: 'land', file, terms, ...(options?.clearHighlights ? { options } : {}) }),
         create: async (title) => {
             calls.push({ method: 'create', title });
         },
@@ -156,6 +157,29 @@ describe('SearchSession activate and land', () => {
         calls.length = 0;
         session.land();
         expect(calls).toEqual([{ method: 'land', file: files.Cherry, terms: ['appl'] }]);
+    });
+});
+
+describe('SearchSession land options and re-pinning', () => {
+    it('passes land options through to the workspace', async () => {
+        const { session, calls } = await setup(NOTES);
+        session.open(null, 'apple');
+        session.land(0, { clearHighlights: true });
+        session.land(0);
+        const lands = calls.filter((c) => c.method === 'land');
+        expect(lands[0].options).toEqual({ clearHighlights: true });
+        expect(lands[1].options).toBeUndefined();
+    });
+
+    it('re-pins the current note without rerunning the search or moving the active note', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(null, 'apple');
+        session.activate(1);
+        const before = session.rows()[1];
+        session.setCurrentNote(files.Banana);
+        expect(session.rows()[0]).toMatchObject({ kind: 'current', file: files.Banana });
+        expect(session.rows()[session.active]).toEqual(before);
+        expect(session.getQuery()).toBe('apple');
     });
 });
 
@@ -335,6 +359,39 @@ describe('SearchSession selection', () => {
         session.setQuery('apple');
         expect(session.isSelecting).toBe(false);
         expect(session.selectionCount).toBe(0);
+    });
+
+    it('selects a range in either direction, skipping the create row', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(null, 'a');
+        expect(session.rows().at(-1)?.kind).toBe('create');
+        session.selectRange(2, 0);
+        expect(session.isSelecting).toBe(true);
+        expect(session.targetFiles()).toEqual([files.Apple, files.Banana, files.Cherry]);
+        session.clearSelection();
+        session.selectRange(1, 99);
+        expect(session.targetFiles()).toEqual([files.Banana, files.Cherry]);
+    });
+
+    it('adds a range to what is already selected', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(null);
+        session.toggleSelect(0);
+        session.selectRange(1, 2);
+        expect(session.targetFiles()).toEqual([files.Apple, files.Banana, files.Cherry]);
+    });
+
+    it('extends the selection with the active row without previewing', async () => {
+        const { session, calls, files } = await setup(NOTES);
+        session.open(null);
+        session.extendSelection(1);
+        expect(session.active).toBe(1);
+        expect(session.targetFiles()).toEqual([files.Apple, files.Banana]);
+        session.extendSelection(1);
+        expect(session.targetFiles()).toEqual([files.Apple, files.Banana, files.Cherry]);
+        session.extendSelection(5);
+        expect(session.active).toBe(2);
+        expect(calls.filter((c) => c.method === 'preview')).toEqual([]);
     });
 
     it('opens the file menu for the targets at the given position', async () => {
