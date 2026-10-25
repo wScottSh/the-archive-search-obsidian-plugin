@@ -400,6 +400,7 @@
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
+	align-self: center;
 	margin-left: auto;
 	width: 36px;
 	height: 36px;
