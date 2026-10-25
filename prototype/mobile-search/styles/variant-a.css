@@ -1,0 +1,450 @@
+/* PROTOTYPE — Variant A, "Thumb Dock". Uses only Obsidian CSS variables. */
+
+.tas-a-root {
+	--tas-a-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	opacity: 0;
+	transform: translateY(28px);
+	transition: opacity 220ms var(--tas-a-ease), transform 320ms var(--tas-a-ease);
+	overflow: hidden;
+}
+.tas-a-root.is-in { opacity: 1; transform: none; }
+
+.tas-a-root button {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+.tas-a-root .is-disabled { opacity: 0.3; pointer-events: none; }
+.tas-a-root mark.tas-hit {
+	background: var(--text-highlight-bg);
+	color: inherit;
+	border-radius: 3px;
+	padding: 0 1px;
+	margin: 0 -1px;
+}
+
+/* ─── Top bar ────────────────────────────────────────────────── */
+
+.tas-a-top {
+	flex-shrink: 0;
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	padding: calc(var(--safe-top) + 10px) 20px 10px;
+	border-bottom: 1px solid transparent;
+}
+.tas-a-top-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.tas-a-top-count { flex: 1; font-size: var(--font-ui-small); color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.tas-a-text-btn {
+	font-size: var(--font-ui-medium) !important;
+	font-weight: 500;
+	color: var(--text-accent) !important;
+	padding: 6px 4px !important;
+}
+.kb-open .tas-a-top { padding-top: calc(var(--safe-top) + 4px); padding-bottom: 6px; }
+.kb-open .tas-a-top-title { font-size: 17px; }
+
+/* ─── Results (bottom-up) ────────────────────────────────────── */
+
+.tas-a-list {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	display: flex;
+	flex-direction: column-reverse;
+	padding: 0 0 6px;
+	mask-image: linear-gradient(to bottom, transparent 0, #000 18px);
+}
+.tas-a-list-cap { flex: 1 0 12px; }
+
+.tas-a-row {
+	position: relative;
+	flex-shrink: 0;
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	margin: 0 8px;
+	padding: 11px 6px 11px 14px;
+	border-radius: var(--radius-l);
+	transition: background-color 120ms ease, transform 160ms var(--tas-a-ease);
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+	cursor: pointer;
+}
+.tas-a-row + .tas-a-row::after {
+	content: "";
+	position: absolute;
+	left: 14px;
+	right: 14px;
+	bottom: -0.5px;
+	height: 1px;
+	background: var(--background-modifier-border);
+	opacity: 0.6;
+}
+.tas-a-row.is-pressing { background: var(--background-modifier-hover); transform: scale(0.985); }
+.tas-a-row.is-active { background: var(--background-modifier-active-hover); }
+.tas-a-row.is-active::before {
+	content: "";
+	position: absolute;
+	left: 4px;
+	top: 12px;
+	bottom: 12px;
+	width: 3px;
+	border-radius: 2px;
+	background: var(--interactive-accent);
+}
+.tas-a-row.is-active::after, .tas-a-row.is-active + .tas-a-row::after { opacity: 0; }
+.tas-a-row.is-selected { background: var(--background-modifier-active-hover); }
+
+.tas-a-row-body { flex: 1; min-width: 0; padding-top: 1px; }
+.tas-a-row-titleline { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.tas-a-row-title {
+	flex: 1;
+	min-width: 0;
+	font-size: 15.5px;
+	line-height: 1.35;
+	font-weight: 450;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.tas-a-row-title.is-filename-match { font-weight: 600; }
+.tas-a-row-path {
+	flex-shrink: 0;
+	max-width: 38%;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.tas-a-row-snippet {
+	margin-top: 3px;
+	font-size: var(--font-ui-small);
+	line-height: 1.45;
+	color: var(--text-muted);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+.tas-a-row-kicker {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin-bottom: 2px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+}
+.tas-a-kicker-icon svg { width: 12px; height: 12px; display: block; }
+.tas-a-row-current .tas-a-row-title { color: var(--text-muted); }
+
+.tas-a-row-create { align-items: center; }
+.tas-a-row-create .tas-a-row-kicker { color: var(--text-accent); }
+.tas-a-row-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border-radius: 10px;
+	background: var(--background-modifier-active-hover);
+	color: var(--text-accent);
+	flex-shrink: 0;
+}
+.tas-a-row-icon svg { width: 18px; height: 18px; }
+
+.tas-a-peek {
+	flex-shrink: 0;
+	align-self: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	margin: -6px 0;
+	border-radius: 19px;
+	color: var(--text-faint) !important;
+}
+.tas-a-peek svg { width: 18px; height: 18px; stroke-width: 1.75px; }
+.tas-a-peek:active { background: var(--background-modifier-hover) !important; color: var(--text-normal) !important; }
+
+.tas-a-check {
+	flex-shrink: 0;
+	align-self: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 11px;
+	border: 1.5px solid var(--background-modifier-border-focus);
+	color: var(--text-on-accent);
+	transition: background-color 120ms ease, border-color 120ms ease;
+}
+.tas-a-check.is-checked { background: var(--interactive-accent); border-color: var(--interactive-accent); }
+.tas-a-check svg { width: 14px; height: 14px; stroke-width: 3px; }
+
+.tas-a-empty {
+	flex-shrink: 0;
+	padding: 28px 20px 12px;
+	text-align: center;
+	color: var(--text-faint);
+	font-size: var(--font-ui-small);
+}
+
+.tas-a-recents {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 16px 10px;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+.tas-a-recents::-webkit-scrollbar { display: none; }
+.tas-a-recents-label { color: var(--text-faint); display: flex; flex-shrink: 0; margin-right: 2px; }
+.tas-a-recents-label svg { width: 16px; height: 16px; }
+.tas-a-recent {
+	flex-shrink: 0;
+	max-width: 220px;
+	padding: 6px 12px !important;
+	border-radius: 16px;
+	background: var(--background-secondary) !important;
+	border: 1px solid var(--background-modifier-border) !important;
+	font-size: var(--font-ui-small) !important;
+	color: var(--text-muted) !important;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ─── Dock ───────────────────────────────────────────────────── */
+
+.tas-a-dock {
+	flex-shrink: 0;
+	position: relative;
+	padding: 0 10px max(var(--safe-bottom), 8px);
+	background: var(--background-primary);
+	transition: padding-bottom 300ms var(--tas-a-ease);
+}
+.kb-open .tas-a-dock { padding-bottom: 6px; }
+
+.tas-a-accessory {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	height: 0;
+	opacity: 0;
+	overflow: hidden;
+	transition: height 260ms var(--tas-a-ease), opacity 180ms ease;
+}
+.kb-open .tas-a-accessory { height: 44px; opacity: 1; }
+.is-selecting .tas-a-accessory { height: 0; opacity: 0; }
+.tas-a-ops { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tas-a-ops::-webkit-scrollbar { display: none; }
+.tas-a-op {
+	flex-shrink: 0;
+	min-width: 40px;
+	height: 32px;
+	padding: 0 11px !important;
+	border-radius: 9px;
+	background: var(--background-secondary) !important;
+	border: 1px solid var(--background-modifier-border) !important;
+	font-family: var(--font-monospace) !important;
+	font-size: 13px !important;
+	font-weight: 600;
+	color: var(--text-muted) !important;
+}
+.tas-a-op:active { background: var(--background-modifier-active-hover) !important; color: var(--text-accent) !important; }
+.tas-a-acc-count {
+	flex-shrink: 0;
+	padding: 0 4px 0 6px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+.tas-a-capsule {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	height: 52px;
+	padding: 0 4px;
+	border-radius: 26px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: var(--shadow-s);
+}
+.is-selecting .tas-a-capsule { display: none; }
+
+.tas-a-icon-btn {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 40px;
+	border-radius: 20px;
+	color: var(--text-muted) !important;
+}
+.tas-a-icon-btn svg { width: 20px; height: 20px; stroke-width: 1.9px; }
+.tas-a-icon-btn:active { background: var(--background-modifier-hover) !important; color: var(--text-normal) !important; }
+.tas-a-capsule .tas-a-icon-btn:nth-child(2) { margin-right: 2px; }
+
+.tas-a-field {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	height: 40px;
+	padding: 0 4px 0 10px;
+	border-radius: 20px;
+	background: var(--background-primary);
+	transition: box-shadow 160ms ease;
+}
+.tas-a-field:focus-within { box-shadow: 0 0 0 2px var(--background-modifier-active-hover), inset 0 0 0 1px var(--interactive-accent); }
+.tas-a-field-icon { display: flex; color: var(--text-faint); margin-right: 6px; }
+.tas-a-field-icon svg { width: 16px; height: 16px; }
+.tas-a-input {
+	flex: 1;
+	min-width: 0;
+	height: 100%;
+	border: 0;
+	outline: none;
+	background: none;
+	color: var(--text-normal);
+	font-family: var(--font-interface);
+	font-size: 16px; /* < 16px makes iOS zoom on focus */
+	padding: 0;
+}
+.tas-a-input::placeholder { color: var(--text-faint); }
+.tas-a-clear { display: flex; color: var(--text-faint) !important; padding: 6px !important; }
+.tas-a-clear svg { width: 17px; height: 17px; }
+.tas-a-clear.is-hidden { display: none; }
+
+/* ─── Selection bar (replaces the capsule) ───────────────────── */
+
+.tas-a-selbar { display: none; }
+.is-selecting .tas-a-selbar {
+	display: block;
+	padding: 4px 4px 2px;
+	border-radius: 20px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: var(--shadow-s);
+	animation: tas-a-rise 240ms var(--tas-a-ease);
+}
+.tas-a-selbar-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 10px; }
+.tas-a-selbar-count { font-size: var(--font-ui-small); font-weight: 600; color: var(--text-muted); }
+.tas-a-selbar-actions { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px; }
+.tas-a-selbar-actions::-webkit-scrollbar { display: none; }
+.tas-a-action {
+	flex: 1 0 64px;
+	display: flex !important;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 8px 4px !important;
+	border-radius: 12px;
+	color: var(--text-normal) !important;
+}
+.tas-a-action:active { background: var(--background-modifier-hover) !important; }
+.tas-a-action.is-danger { color: var(--text-error) !important; }
+.tas-a-action-icon svg { width: 20px; height: 20px; stroke-width: 1.75px; display: block; }
+.tas-a-action-label { font-size: 10.5px; line-height: 1.15; text-align: center; color: var(--text-muted); }
+.tas-a-action.is-danger .tas-a-action-label { color: var(--text-error); }
+
+@keyframes tas-a-rise { from { opacity: 0; transform: translateY(10px); } }
+
+/* ─── Quick Look ─────────────────────────────────────────────── */
+
+.tas-a-look {
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	background: var(--background-primary);
+	transform: translateY(100%);
+	transition: transform 340ms var(--tas-a-ease);
+	visibility: hidden;
+}
+.tas-a-look.is-open { transform: none; visibility: visible; }
+.tas-a-look-head {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: calc(var(--safe-top) + 6px) 12px 10px 6px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.tas-a-look-meta { flex: 1; min-width: 0; }
+.tas-a-look-title { font-size: var(--font-ui-medium); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tas-a-look-path { font-size: var(--font-ui-smaller); color: var(--text-faint); }
+.tas-a-look-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 18px 22px 28px;
+	font-family: var(--font-text);
+	font-size: 16px;
+	line-height: 1.6;
+	touch-action: pan-y;
+}
+.tas-a-look-body p { margin: 0 0 12px; }
+.tas-a-look-body h3 { font-size: 17px; margin: 18px 0 8px; }
+.tas-a-look-body li { margin: 0 0 6px 18px; }
+.tas-a-look-foot {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 12px max(var(--safe-bottom), 10px);
+	border-top: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+}
+.tas-a-look-nav { flex: 1; display: flex; align-items: center; gap: 2px; }
+.tas-a-look-pos { font-size: var(--font-ui-small); color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 56px; text-align: center; }
+.tas-a-btn {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 6px;
+	height: 40px;
+	padding: 0 14px !important;
+	border-radius: 20px;
+	background: var(--background-secondary) !important;
+	border: 1px solid var(--background-modifier-border) !important;
+	font-size: var(--font-ui-small) !important;
+	font-weight: 600;
+}
+.tas-a-btn-icon svg { width: 16px; height: 16px; display: block; }
+.tas-a-btn.is-primary {
+	background: var(--interactive-accent) !important;
+	border-color: transparent !important;
+	color: var(--text-on-accent) !important;
+	padding: 0 20px !important;
+}
+
+.tas-a-list, .tas-a-look-body { scrollbar-width: none; }
+.tas-a-list::-webkit-scrollbar, .tas-a-look-body::-webkit-scrollbar { display: none; }
+.kb-open .tas-a-top-count { visibility: hidden; }
+.is-selecting .tas-a-row.is-active:not(.is-selected) { background: none; }
+.is-selecting .tas-a-row.is-active::before { display: none; }

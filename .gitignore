@@ -34,3 +34,4 @@ data.json
 # Editor / OS junk
 *.swp
 *~
+prototype/mobile-search/out/

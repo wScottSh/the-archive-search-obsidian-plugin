@@ -1,0 +1,631 @@
+/* PROTOTYPE — Variant C: "Sheet over note". Only Obsidian CSS variables. */
+
+.tas-c-root.tas-c-root {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	font-family: var(--font-interface);
+	color: var(--text-normal);
+}
+
+.tas-c-scrim {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.36);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 440ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tas-c-scrim.is-active {
+	pointer-events: auto;
+}
+
+/* ─── Sheet ─────────────────────────────────────────────────── */
+
+.tas-c-sheet {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	flex-direction: column;
+	pointer-events: auto;
+	overflow: hidden;
+	border-radius: 18px 18px 0 0;
+	background: color-mix(in srgb, var(--background-primary) 86%, transparent);
+	-webkit-backdrop-filter: blur(28px) saturate(1.6);
+	backdrop-filter: blur(28px) saturate(1.6);
+	box-shadow:
+		0 -0.5px 0 var(--background-modifier-border),
+		0 -10px 40px rgba(0, 0, 0, 0.18);
+	transition: top 440ms cubic-bezier(0.32, 0.72, 0, 1);
+	will-change: top;
+}
+
+.tas-c-sheet.is-dragging {
+	transition: none;
+}
+
+.tas-c-grabber {
+	flex-shrink: 0;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	touch-action: none;
+	cursor: grab;
+}
+
+.tas-c-grabber::before {
+	content: "";
+	width: 36px;
+	height: 5px;
+	border-radius: 3px;
+	background: var(--text-faint);
+	opacity: 0.55;
+}
+
+.tas-c-btn {
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.tas-c-btn.is-disabled {
+	opacity: 0.3;
+	pointer-events: none;
+}
+
+/* ─── Header ────────────────────────────────────────────────── */
+
+.tas-c-header {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 0 14px 10px;
+	touch-action: none;
+}
+
+.tas-c-capsule {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 40px;
+	padding: 0 10px 0 11px;
+	border-radius: 12px;
+	background: color-mix(in srgb, var(--text-normal) 8%, transparent);
+	transition: background 160ms ease, box-shadow 160ms ease;
+}
+
+.tas-c-capsule:focus-within {
+	background: var(--background-primary);
+	box-shadow:
+		0 0 0 1.5px var(--interactive-accent),
+		0 0 0 5px color-mix(in srgb, var(--interactive-accent) 18%, transparent);
+}
+
+.tas-c-capsule-icon {
+	display: flex;
+	color: var(--text-faint);
+}
+
+.tas-c-capsule-icon svg {
+	width: 17px;
+	height: 17px;
+	stroke-width: 2px;
+}
+
+.tas-c-input.tas-c-input {
+	flex: 1;
+	min-width: 0;
+	height: 100%;
+	padding: 0;
+	border: 0;
+	outline: none;
+	box-shadow: none;
+	background: transparent;
+	color: var(--text-normal);
+	font: 400 16px/1 var(--font-interface);
+	letter-spacing: -0.01em;
+}
+
+.tas-c-input::placeholder {
+	color: var(--text-faint);
+}
+
+.tas-c-clear {
+	display: none;
+	color: var(--text-faint);
+}
+
+.tas-c-capsule.has-value .tas-c-clear {
+	display: flex;
+}
+
+.tas-c-clear svg {
+	width: 18px;
+	height: 18px;
+}
+
+.tas-c-done {
+	flex-shrink: 0;
+	padding: 8px 2px;
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--text-accent);
+}
+
+/* ─── Meta + operator rows ──────────────────────────────────── */
+
+.tas-c-meta,
+.tas-c-ops {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	height: 34px;
+	padding: 0 10px 8px;
+}
+
+.tas-c-meta {
+	gap: 2px;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	touch-action: none;
+}
+
+.tas-c-iconbtn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	color: var(--text-muted);
+}
+
+.tas-c-iconbtn:active {
+	background: var(--background-modifier-hover);
+}
+
+.tas-c-iconbtn svg {
+	width: 20px;
+	height: 20px;
+	stroke-width: 1.75px;
+}
+
+.tas-c-count {
+	padding-left: 6px;
+	font-variant-numeric: tabular-nums;
+}
+
+.tas-c-count.is-strong {
+	padding-left: 8px;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.tas-c-spacer {
+	flex: 1;
+}
+
+.tas-c-textbtn {
+	padding: 6px 8px;
+	border-radius: 8px;
+	font-weight: 600;
+	color: var(--text-accent);
+}
+
+.tas-c-textbtn:active {
+	background: var(--background-modifier-hover);
+}
+
+.tas-c-ops {
+	display: none;
+	gap: 6px;
+	padding: 0 14px 8px;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.tas-c-ops::-webkit-scrollbar {
+	display: none;
+}
+
+.tas-c-chip {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	height: 28px;
+	padding: 0 12px;
+	border-radius: 14px;
+	background: color-mix(in srgb, var(--text-normal) 8%, transparent);
+	font: 500 13px/1 var(--font-monospace);
+	color: var(--text-normal);
+}
+
+.tas-c-chip:active {
+	background: var(--background-modifier-active-hover);
+	color: var(--text-accent);
+}
+
+.tas-c-root.is-kb .tas-c-meta {
+	display: none;
+}
+
+.tas-c-root.is-kb .tas-c-ops {
+	display: flex;
+}
+
+/* ─── Browse stepper ────────────────────────────────────────── */
+
+.tas-c-stepper {
+	display: none;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 12px 12px 18px;
+	touch-action: none;
+}
+
+.tas-c-root.is-browsing .tas-c-stepper {
+	display: flex;
+}
+
+.tas-c-root.is-browsing .tas-c-header,
+.tas-c-root.is-browsing .tas-c-meta {
+	display: none;
+}
+
+.tas-c-step-body {
+	flex: 1;
+	min-width: 0;
+	cursor: pointer;
+}
+
+.tas-c-step-title {
+	font-size: var(--font-ui-medium);
+	font-weight: 600;
+	line-height: 1.3;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.tas-c-step-sub {
+	margin-top: 2px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-variant-numeric: tabular-nums;
+}
+
+.tas-c-stepper .tas-c-iconbtn {
+	width: 38px;
+	height: 38px;
+	background: color-mix(in srgb, var(--text-normal) 8%, transparent);
+	color: var(--text-normal);
+}
+
+.tas-c-open {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	height: 38px;
+	padding: 0 16px 0 13px;
+	margin-left: 2px;
+	border-radius: 19px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.tas-c-open svg {
+	display: block;
+	width: 16px;
+	height: 16px;
+	stroke-width: 2.25px;
+}
+
+.tas-c-open:active {
+	background: var(--interactive-accent-hover);
+}
+
+/* ─── List ──────────────────────────────────────────────────── */
+
+.tas-c-list {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none;
+	padding: 4px 8px calc(16px + var(--safe-bottom));
+	border-top: 0.5px solid var(--background-modifier-border);
+}
+
+.tas-c-root.is-peek .tas-c-list,
+.tas-c-root.is-peek .tas-c-meta {
+	visibility: hidden;
+}
+
+.tas-c-root.is-selecting .tas-c-list {
+	padding-bottom: 12px;
+}
+
+.tas-c-section {
+	padding: 14px 10px 6px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+}
+
+.tas-c-recent {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 2px 6px 4px;
+}
+
+.tas-c-recent-chip {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	max-width: 100%;
+	height: 30px;
+	padding: 0 12px 0 9px;
+	border-radius: 15px;
+	background: color-mix(in srgb, var(--text-normal) 7%, transparent);
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.tas-c-recent-chip span:last-child {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.tas-c-recent-chip svg {
+	display: block;
+	width: 14px;
+	height: 14px;
+	color: var(--text-faint);
+}
+
+.tas-c-row {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 11px 12px;
+	border-radius: 12px;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-touch-callout: none;
+	user-select: none;
+	-webkit-user-select: none;
+	transition: background 120ms ease;
+}
+
+.tas-c-row + .tas-c-row::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 12px;
+	right: 12px;
+	border-top: 0.5px solid var(--background-modifier-border);
+}
+
+.tas-c-row.is-active::before,
+.tas-c-row.is-active + .tas-c-row::before,
+.tas-c-row.is-checked::before,
+.tas-c-row.is-checked + .tas-c-row::before {
+	border-color: transparent;
+}
+
+.tas-c-row:active {
+	background: var(--background-modifier-hover);
+}
+
+.tas-c-row.is-active {
+	background: var(--background-modifier-active-hover);
+}
+
+.tas-c-row.is-checked {
+	background: color-mix(in srgb, var(--interactive-accent) 10%, transparent);
+}
+
+.tas-c-row-icon {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	margin-top: 1px;
+	border-radius: 9px;
+	background: color-mix(in srgb, var(--text-normal) 7%, transparent);
+	color: var(--text-muted);
+}
+
+.tas-c-row-icon svg {
+	width: 16px;
+	height: 16px;
+	stroke-width: 1.75px;
+}
+
+.tas-c-row.is-create .tas-c-row-icon {
+	background: color-mix(in srgb, var(--interactive-accent) 16%, transparent);
+	color: var(--text-accent);
+}
+
+.tas-c-row.is-create .tas-c-title {
+	color: var(--text-accent);
+}
+
+.tas-c-check {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	margin-top: 1px;
+	border-radius: 50%;
+	border: 1.5px solid var(--text-faint);
+	color: var(--text-on-accent);
+	transition: background 120ms ease, border-color 120ms ease;
+}
+
+.tas-c-check.is-checked {
+	border-color: var(--interactive-accent);
+	background: var(--interactive-accent);
+}
+
+.tas-c-check svg {
+	width: 14px;
+	height: 14px;
+	stroke-width: 3px;
+}
+
+.tas-c-row-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.tas-c-kicker {
+	margin-bottom: 1px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+}
+
+.tas-c-title {
+	font-size: var(--font-ui-medium);
+	font-weight: 500;
+	line-height: 1.32;
+	letter-spacing: -0.005em;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.tas-c-sub {
+	display: flex;
+	gap: 8px;
+	margin-top: 3px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.tas-c-id {
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+
+.tas-c-folder {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.tas-c-id + .tas-c-folder::before {
+	content: "·";
+	margin-right: 8px;
+}
+
+.tas-c-snippet {
+	margin-top: 5px;
+	font-size: var(--font-ui-small);
+	line-height: 1.45;
+	color: var(--text-muted);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.tas-c-root mark.tas-hit {
+	background: transparent;
+	color: var(--text-accent);
+	font-weight: 600;
+}
+
+.tas-c-snippet mark.tas-hit {
+	padding: 0 1px;
+	border-radius: 3px;
+	background: var(--text-highlight-bg);
+	color: var(--text-normal);
+	font-weight: 500;
+}
+
+.tas-c-empty {
+	padding: 28px 16px 10px;
+	text-align: center;
+	font-size: var(--font-ui-small);
+	color: var(--text-faint);
+}
+
+/* ─── Selection action bar ──────────────────────────────────── */
+
+.tas-c-actions {
+	display: none;
+	flex-shrink: 0;
+	gap: 2px;
+	padding: 6px 6px calc(6px + var(--safe-bottom));
+	border-top: 0.5px solid var(--background-modifier-border);
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.tas-c-root.is-selecting .tas-c-actions {
+	display: flex;
+}
+
+.tas-c-action {
+	flex: 1 1 0;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+	padding: 6px 4px;
+	border-radius: 10px;
+	color: var(--text-accent);
+}
+
+.tas-c-action:active {
+	background: var(--background-modifier-hover);
+}
+
+.tas-c-action.is-danger {
+	color: var(--text-error);
+}
+
+.tas-c-action-icon svg {
+	display: block;
+	width: 20px;
+	height: 20px;
+	stroke-width: 1.75px;
+}
+
+.tas-c-action-label {
+	font-size: 10.5px;
+	font-weight: 500;
+	white-space: nowrap;
+}

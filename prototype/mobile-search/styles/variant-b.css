@@ -1,0 +1,581 @@
+/* PROTOTYPE — Variant B: Split browser. Only Obsidian CSS variables. */
+
+.tas-b {
+	--tas-b-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--tas-b-peek: 60px;
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	padding-top: var(--safe-top);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	animation: tas-b-in 220ms var(--tas-b-ease);
+	overflow: hidden;
+}
+
+@keyframes tas-b-in {
+	from { opacity: 0; transform: translateY(10px); }
+}
+
+.tas-b button {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.tas-b .is-disabled {
+	opacity: 0.3;
+	pointer-events: none;
+}
+
+.tas-b mark.tas-hit {
+	background: var(--text-highlight-bg);
+	color: inherit;
+	border-radius: 3px;
+	padding: 0 1px;
+}
+
+.tas-b-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	border-radius: var(--radius-m);
+	color: var(--text-muted);
+}
+
+.tas-b-icon:active { background: var(--background-modifier-hover); }
+.tas-b-icon svg { width: 20px; height: 20px; stroke-width: 2px; }
+
+/* ─── Header ─────────────────────────────────────────────────── */
+
+.tas-b-header {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	height: 52px;
+	padding: 0 12px 0 4px;
+	flex-shrink: 0;
+}
+
+.tas-b-field {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	height: 38px;
+	margin-left: 4px;
+	padding: 0 4px 0 10px;
+	border-radius: 11px;
+	background: var(--background-secondary);
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+	transition: box-shadow 150ms;
+}
+
+.tas-b-field:focus-within {
+	box-shadow: inset 0 0 0 1.5px var(--interactive-accent);
+}
+
+.tas-b-field-icon { display: flex; color: var(--text-faint); }
+.tas-b-field-icon svg { width: 17px; height: 17px; }
+
+.tas-b-input {
+	flex: 1;
+	min-width: 0;
+	height: 100%;
+	padding: 0 8px;
+	border: 0;
+	outline: none;
+	background: none;
+	color: var(--text-normal);
+	font: 16px/1 var(--font-interface);
+}
+
+.tas-b-input::placeholder { color: var(--text-faint); }
+
+.tas-b-clear {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	color: var(--text-faint);
+}
+
+.tas-b-clear svg { width: 17px; height: 17px; }
+.tas-b-field.has-value .tas-b-clear { display: flex; }
+
+.tas-b-close {
+	margin-left: 10px;
+	font-size: 16px !important;
+	font-weight: 600 !important;
+	color: var(--interactive-accent) !important;
+}
+
+/* ─── Meta row ───────────────────────────────────────────────── */
+
+.tas-b-meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	height: 32px;
+	padding: 0 12px 2px 16px;
+	flex-shrink: 0;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tas-b-count { font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.tas-b-spacer { flex: 1; }
+
+.tas-b-pill {
+	height: 24px;
+	padding: 0 10px !important;
+	border-radius: 12px;
+	font-size: var(--font-ui-smaller) !important;
+	font-weight: 500;
+	color: var(--text-muted) !important;
+	background: var(--background-modifier-hover) !important;
+}
+
+.tas-b-help-btn {
+	display: flex;
+	align-items: center;
+	padding: 0 6px !important;
+}
+
+.tas-b-help-btn svg { width: 15px; height: 15px; }
+.tas-b.show-syntax .tas-b-help-btn { color: var(--interactive-accent) !important; }
+.tas-b.is-selecting .tas-b-meta .tas-b-pill:not(.tas-b-help-btn) { color: var(--interactive-accent) !important; }
+
+/* ─── Body: list / divider / pane ────────────────────────────── */
+
+.tas-b-body {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.tas-b-list {
+	position: relative;
+	flex: 1 1 0;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none;
+	padding: 4px 0 8px;
+}
+
+.tas-b-list::-webkit-scrollbar,
+.tas-b-doc::-webkit-scrollbar { display: none; }
+
+.tas-b-divider {
+	flex: 0 0 18px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: row-resize;
+	touch-action: none;
+	transition: flex-basis 300ms var(--tas-b-ease), opacity 200ms;
+}
+
+.tas-b-divider-grip {
+	width: 38px;
+	height: 5px;
+	border-radius: 3px;
+	background: var(--background-modifier-border-focus);
+}
+
+.tas-b-pane {
+	flex: 0 0 calc((1 - var(--tas-b-split)) * 100%);
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	margin: 0 6px;
+	border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+	background: var(--background-secondary);
+	box-shadow: 0 -1px 0 var(--background-modifier-border), var(--shadow-s);
+	overflow: hidden;
+	transition: flex-basis 300ms var(--tas-b-ease), margin 300ms var(--tas-b-ease);
+}
+
+.tas-b.is-dragging .tas-b-pane,
+.tas-b.is-dragging .tas-b-divider { transition: none; }
+
+/* Keyboard up: preview → peek strip docked on the keyboard. */
+.tas-b.is-kb .tas-b-divider { flex-basis: 6px; opacity: 0; pointer-events: none; }
+.tas-b.is-kb .tas-b-pane.is-preview { flex-basis: var(--tas-b-peek); margin: 0; border-radius: var(--radius-l) var(--radius-l) 0 0; }
+.tas-b.is-kb .tas-b-pane.is-actions { flex-basis: 45%; }
+
+/* ─── Rows ───────────────────────────────────────────────────── */
+
+.tas-b-row {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	min-height: 44px;
+	padding: 11px 16px 10px;
+	box-sizing: border-box;
+	cursor: pointer;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+	transition: background-color 120ms;
+}
+
+.tas-b-row + .tas-b-row::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 16px;
+	right: 0;
+	border-top: 1px solid var(--background-modifier-border);
+	opacity: 0.6;
+}
+
+.tas-b-row:active { background: var(--background-modifier-hover); }
+
+.tas-b-row.is-active {
+	background: var(--background-modifier-active-hover);
+	box-shadow: inset 3px 0 0 var(--interactive-accent);
+}
+
+.tas-b-row.is-active::before,
+.tas-b-row.is-active + .tas-b-row::before { opacity: 0; }
+
+.tas-b-row-icon {
+	display: flex;
+	margin-top: 1px;
+	color: var(--text-faint);
+}
+
+.tas-b-row-icon svg { width: 18px; height: 18px; stroke-width: 1.75px; }
+
+.tas-b-row-main { flex: 1; min-width: 0; }
+
+.tas-b-row-line {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+}
+
+.tas-b-row-title {
+	flex: 1;
+	min-width: 0;
+	font-size: var(--font-ui-medium);
+	line-height: 1.35;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.tas-b-row-title.is-filename-match { font-weight: 600; }
+
+.tas-b-row-label {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+}
+
+.tas-b-row-path {
+	flex-shrink: 1;
+	max-width: 38%;
+	font-size: 11px;
+	color: var(--text-faint);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.tas-b-row-snippet {
+	margin-top: 3px;
+	font-size: var(--font-ui-small);
+	line-height: 1.4;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.tas-b-row-current .tas-b-row-title { color: var(--text-muted); }
+.tas-b-row-create { color: var(--text-muted); }
+.tas-b-row-create .tas-b-row-icon { color: var(--interactive-accent); }
+.tas-b-row-create strong { color: var(--text-normal); font-weight: 600; }
+
+.tas-b-check {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	margin-top: 1px;
+	flex-shrink: 0;
+	border-radius: 50%;
+	box-shadow: inset 0 0 0 1.5px var(--background-modifier-border-focus);
+	color: var(--text-on-accent);
+	transition: background-color 120ms, box-shadow 120ms;
+}
+
+.tas-b-check svg { width: 13px; height: 13px; stroke-width: 3px; }
+.tas-b-row.is-checked .tas-b-check { background: var(--interactive-accent); box-shadow: none; }
+.tas-b-row.is-checked { background: var(--background-modifier-active-hover); }
+
+/* ─── Recent queries ─────────────────────────────────────────── */
+
+.tas-b-recent {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 16px 10px;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.tas-b-recent::-webkit-scrollbar { display: none; }
+.tas-b-recent-icon { display: flex; color: var(--text-faint); flex-shrink: 0; }
+.tas-b-recent-icon svg { width: 15px; height: 15px; }
+
+.tas-b-chip {
+	flex-shrink: 0;
+	height: 28px;
+	padding: 0 12px !important;
+	border-radius: 14px;
+	background: var(--background-secondary) !important;
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+	font-size: var(--font-ui-small) !important;
+	color: var(--text-muted) !important;
+	max-width: 200px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ─── Preview pane ───────────────────────────────────────────── */
+
+.tas-b-pane-head {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	min-height: var(--tas-b-peek);
+	padding: 0 8px 0 16px;
+	flex-shrink: 0;
+	box-sizing: border-box;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tas-b.is-kb .tas-b-pane-head { border-bottom-color: transparent; cursor: pointer; }
+
+.tas-b-pane-titles { flex: 1; min-width: 0; margin-right: 4px; }
+
+.tas-b-pane-title {
+	font-size: 14px;
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.tas-b-pane-sub {
+	display: flex;
+	gap: 8px;
+	margin-top: 2px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.tas-b-pane-peekline {
+	display: none;
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--text-muted);
+}
+
+.tas-b-pane-pos { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.tas-b.is-kb .tas-b-pane-peekline { display: block; }
+
+.tas-b-primary {
+	height: 30px;
+	padding: 0 14px !important;
+	border-radius: 15px;
+	background: var(--interactive-accent) !important;
+	color: var(--text-on-accent) !important;
+	font-size: var(--font-ui-small) !important;
+	font-weight: 600;
+}
+
+.tas-b-open { margin-left: 6px; }
+.tas-b-primary:active { filter: brightness(0.92); }
+
+.tas-b-doc {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	scrollbar-width: none;
+	padding: 14px 20px calc(24px + var(--safe-bottom));
+	font-family: var(--font-text);
+	font-size: 15px;
+	line-height: 1.6;
+	color: var(--text-normal);
+	transition: opacity 200ms;
+}
+
+.tas-b.is-kb .tas-b-doc { opacity: 0; }
+
+.tas-b-doc p { margin: 0 0 10px; }
+.tas-b-doc ul { margin: 0 0 10px; padding-left: 20px; }
+.tas-b-h { font-weight: 700; line-height: 1.3; margin: 2px 0 10px; }
+.tas-b-h1 { font-size: 19px; }
+.tas-b-h2 { font-size: 17px; }
+.tas-b-h3 { font-size: 15px; }
+.tas-b-link { color: var(--text-accent); }
+.tas-b-tag {
+	color: var(--text-accent);
+	background: var(--background-modifier-active-hover);
+	padding: 0 6px;
+	border-radius: 9px;
+	font-size: 0.86em;
+}
+.tas-b-doc code {
+	font-family: var(--font-monospace);
+	font-size: 0.86em;
+	padding: 1px 4px;
+	border-radius: 4px;
+	background: var(--background-modifier-hover);
+}
+
+/* ─── Create / empty ─────────────────────────────────────────── */
+
+.tas-b-create,
+.tas-b-empty {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 16px 24px;
+	text-align: center;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.tas-b-create-icon { color: var(--interactive-accent); }
+.tas-b-create-icon svg { width: 28px; height: 28px; stroke-width: 1.5px; }
+.tas-b-create-title { font-size: 16px; font-weight: 600; color: var(--text-normal); word-break: break-word; }
+.tas-b-create .tas-b-primary { margin-top: 8px; }
+.tas-b.is-kb .tas-b-create { flex-direction: row; justify-content: flex-start; padding: 0 12px 0 16px; text-align: left; }
+.tas-b.is-kb .tas-b-create-icon svg { width: 20px; height: 20px; }
+.tas-b.is-kb .tas-b-create-title { flex: 1; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tas-b.is-kb .tas-b-create-sub { display: none; }
+.tas-b.is-kb .tas-b-create .tas-b-primary { margin: 0; }
+
+/* ─── Selection actions ──────────────────────────────────────── */
+
+.tas-b-actions-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 12px 10px 18px;
+	flex-shrink: 0;
+}
+
+.tas-b-actions-title { flex: 1; font-size: 14px; font-weight: 600; }
+
+.tas-b-actions {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0 8px calc(10px + var(--safe-bottom));
+}
+
+.tas-b-action {
+	display: flex !important;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+	height: 46px;
+	padding: 0 12px !important;
+	border-radius: var(--radius-m);
+	font-size: var(--font-ui-medium) !important;
+	text-align: left;
+}
+
+.tas-b-action:active { background: var(--background-modifier-hover) !important; }
+.tas-b-action-icon { display: flex; color: var(--text-muted); }
+.tas-b-action-icon svg { width: 19px; height: 19px; stroke-width: 1.75px; }
+.tas-b-action.is-danger,
+.tas-b-action.is-danger .tas-b-action-icon { color: var(--text-error) !important; }
+
+/* ─── Syntax sheet ───────────────────────────────────────────── */
+
+.tas-b-syntax {
+	position: absolute;
+	z-index: 5;
+	top: calc(var(--safe-top) + 88px);
+	left: 10px;
+	right: 10px;
+	padding: 6px 10px 12px;
+	border-radius: var(--radius-l);
+	background: var(--background-secondary-alt);
+	box-shadow: var(--shadow-l), inset 0 0 0 1px var(--background-modifier-border);
+	opacity: 0;
+	transform: translateY(-6px) scale(0.98);
+	transform-origin: top right;
+	pointer-events: none;
+	transition: opacity 160ms, transform 200ms var(--tas-b-ease);
+}
+
+.tas-b.show-syntax .tas-b-syntax { opacity: 1; transform: none; pointer-events: auto; }
+
+.tas-b-syntax-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-left: 6px;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+}
+
+.tas-b-syntax-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+}
+
+.tas-b-syntax-item {
+	display: flex !important;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
+	padding: 8px 10px !important;
+	border-radius: var(--radius-m);
+	background: var(--background-primary) !important;
+	text-align: left;
+}
+
+.tas-b-syntax-item:active { background: var(--background-modifier-active-hover) !important; }
+.tas-b-syntax-item code { font-family: var(--font-monospace); font-size: 13px; color: var(--text-accent); }
+.tas-b-syntax-item span { font-size: 11px; color: var(--text-faint); }
