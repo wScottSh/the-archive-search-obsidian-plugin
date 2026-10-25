@@ -19,7 +19,7 @@ import { App, Modal, TFile, setIcon } from 'obsidian';
 import type TheArchiveSearchPlugin from '../main';
 import { trackKeyboard } from './keyboard-tracker';
 import { insertOperator, Operator } from './operator-insert';
-import { QuickLook } from './quick-look';
+import { QuickLook, QuickLookItem } from './quick-look';
 import { ObsidianWorkspace } from './obsidian-workspace';
 import { SearchSession, Row, highlightPieces } from './search-session';
 import type { SnippetPiece } from './search-engine';
@@ -89,7 +89,7 @@ export class MobileSearchModal extends Modal {
             if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
             e.preventDefault();
             this.session.land();
-            this.close();
+            this.exit();
         });
 
         this.clearEl = this.createIconButton(capsuleEl, 'x-circle', 'Clear', () => {
@@ -102,7 +102,7 @@ export class MobileSearchModal extends Modal {
             this.inputEl.blur();
             this.session.beginSelect();
         });
-        this.createIconButton(capsuleEl, 'x', 'Close', () => this.close());
+        this.createIconButton(capsuleEl, 'x', 'Close', () => this.exit());
         this.createSelectionBar(dockEl);
 
         // ── Session ──
@@ -179,6 +179,21 @@ export class MobileSearchModal extends Modal {
         this.session.setQuery(edit.value);
     }
 
+    /**
+     * Escape and Android back both arrive here, so one press backs out one
+     * level: Quick Look, then selection, then the search itself.
+     */
+    close(): void {
+        if (this.quickLook) this.quickLook.close();
+        else if (this.session?.isSelecting) this.session.clearSelection();
+        else super.close();
+    }
+
+    /** Leave search outright, whatever is open on top of it. */
+    private exit(): void {
+        super.close();
+    }
+
     onClose(): void {
         this.quickLook?.close();
         this.unsubscribe?.();
@@ -252,7 +267,7 @@ export class MobileSearchModal extends Modal {
                 return;
             }
             this.session.land(index);
-            this.close();
+            this.exit();
         });
 
         if (this.session.isSelecting && row.kind !== 'create') {
@@ -280,7 +295,7 @@ export class MobileSearchModal extends Modal {
 
         const folder = row.file.parent?.path || '';
         if (folder) rowEl.createSpan({ cls: 'mobile-search-row-folder', text: folder });
-        if (!this.session.isSelecting) this.createEyeButton(rowEl, row.file, index, terms);
+        if (!this.session.isSelecting) this.createEyeButton(rowEl, index, terms);
 
         if (row.kind === 'result' && this.plugin.settings.showMobilePreviews && row.result.snippet) {
             this.appendPieces(rowEl.createDiv({ cls: 'mobile-search-row-snippet' }), row.result.snippet);
@@ -288,7 +303,7 @@ export class MobileSearchModal extends Modal {
     }
 
     /** Eye on a file row: peek at the note. Does not select the row or touch the keyboard. */
-    private createEyeButton(rowEl: HTMLElement, file: TFile, index: number, terms: string[]): void {
+    private createEyeButton(rowEl: HTMLElement, index: number, terms: string[]): void {
         const eyeEl = rowEl.createEl('button', { cls: 'mobile-search-eye-btn' });
         setIcon(eyeEl, 'eye');
         eyeEl.setAttribute('aria-label', 'Quick Look');
@@ -297,20 +312,26 @@ export class MobileSearchModal extends Modal {
         eyeEl.addEventListener('pointerdown', (e) => e.stopPropagation());
         eyeEl.addEventListener('click', (e) => {
             e.stopPropagation();
-            this.openQuickLook(file, index, terms);
+            this.openQuickLook(index, terms);
         });
     }
 
-    private openQuickLook(file: TFile, index: number, terms: string[]): void {
+    private openQuickLook(index: number, terms: string[]): void {
         this.quickLook?.close();
         this.inputEl.blur();
+        // File rows only: stepping skips the create row
+        const items: QuickLookItem[] = [];
+        this.session.rows().forEach((row, rowIndex) => {
+            if (row.kind !== 'create') items.push({ file: row.file, index: rowIndex });
+        });
         this.quickLook = new QuickLook(this.contentEl, {
             app: this.app,
-            file,
+            items,
+            start: items.findIndex((item) => item.index === index),
             terms,
-            onOpen: () => {
-                this.session.land(index);
-                this.close();
+            onOpen: (rowIndex) => {
+                this.session.land(rowIndex);
+                this.exit();
             },
             onClose: () => {
                 this.quickLook = undefined;
