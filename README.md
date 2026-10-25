@@ -66,7 +66,7 @@ Wiki-links become search queries: clicking `[[some topic]]` doesn't open a file 
 On phones and tablets, the Omnibar opens as a full-screen search modal instead of a sidebar pane. The search field is docked at the bottom, in reach of your thumb, and rides on top of the keyboard. A bar at the top shows the match count and **Select**.
 
 - **Bottom-up results** — the first row sits right above the search field and results read upward. Your current note is pinned at the bottom of the results
-- **Operator buttons** — while the keyboard is open, a row above the field inserts `" "`, `( )`, `OR`, `NOT` (as `!`) and `#`. Quotes and parentheses wrap selected text; NOT prefixes it
+- **Operator buttons** — while the keyboard is open, a row above the field inserts `" "`, `( )`, `OR`, `NOT` (as `!`) and `#`. Quotes and parentheses wrap selected text; NOT and `#` prefix it
 - **Open a note** — tap a result, or press **Go** on the keyboard to open the marked row. Both open the note with highlights and the cursor at the first match, and close search. Typing a note's exact title marks that note
 - **Create a note** — a **Create new note** row ends the list for any non-blank query. Tap it to create the note, or open it if it already exists
 - **Select** — long-press a row, or tap **Select** at the top, to show checkboxes. **Select all** and **Actions** (Obsidian's own file menu for the selected notes) replace the search field until you tap **Cancel**

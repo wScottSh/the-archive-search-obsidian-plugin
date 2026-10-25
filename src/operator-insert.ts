@@ -23,7 +23,7 @@ const WRAPPERS: Record<'phrase' | 'group', [string, string]> = {
  * - phrase / group: wrap the selection, or put the caret between an empty pair
  * - or: insert `OR` with a space on each side, never doubling an existing one
  * - not: prefix the selection (or caret) with `!`
- * - tag: insert `#`, replacing any selection
+ * - tag: prefix the selection (or caret) with `#`
  */
 export function insertOperator(value: string, start: number, end: number, operator: Operator): OperatorEdit {
     const from = Math.min(value.length, Math.max(0, Math.min(start, end)));
@@ -54,6 +54,6 @@ export function insertOperator(value: string, start: number, end: number, operat
             };
         }
         case 'tag':
-            return { value: before + '#' + after, caret: from + 1 };
+            return { value: before + '#' + selected + after, caret: from + 1 + selected.length };
     }
 }

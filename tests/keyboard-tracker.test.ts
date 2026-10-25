@@ -260,6 +260,17 @@ describe('trackKeyboard', () => {
         expect(phone.storage.get(STORED)).toBe('336');
     });
 
+    it('a window that only gets shorter while focused never leaves the surface taller than visible', () => {
+        trackKeyboard(el, phone.asEnv());
+        phone.focus(input);
+        // Split screen, say: same width, 100px shorter, no soft keyboard
+        phone.innerHeight = 700;
+        phone.visualViewport.height = 700;
+        phone.dispatch('resize');
+        expect(el.isOpen).toBe(false);
+        expect(el.visible).toBe('700px');
+    });
+
     it('follows the visual viewport top offset and undoes the iOS page scroll', () => {
         trackKeyboard(el, phone.asEnv());
         phone.focus(input);

@@ -44,7 +44,7 @@ describe('insertOperator', () => {
         // tag
         ['|', 'tag', '#|'],
         ['foo |', 'tag', 'foo #|'],
-        ['foo [bar]', 'tag', 'foo #|'],
+        ['foo [bar]', 'tag', 'foo #bar|'],
     ];
 
     it.each(cases)('%s + %s -> %s', (input, operator, expected) => {

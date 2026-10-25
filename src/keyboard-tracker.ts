@@ -104,9 +104,9 @@ export function trackKeyboard(element: KeyboardElement, env: KeyboardEnv = windo
 
     const offsetTop = () => (vv ? Math.round(vv.offsetTop) : 0);
 
-    const apply = (keyboardHeight: number, isOpen: boolean) => {
+    const apply = (keyboardHeight: number, isOpen: boolean, visibleHeight = baseline - keyboardHeight) => {
         open = isOpen;
-        element.style.setProperty('--mobile-search-visible-height', `${baseline - keyboardHeight}px`);
+        element.style.setProperty('--mobile-search-visible-height', `${visibleHeight}px`);
         element.style.setProperty('--mobile-search-keyboard-height', `${keyboardHeight}px`);
         element.style.setProperty('--mobile-search-top', `${offsetTop()}px`);
         element.style.setProperty('--mobile-search-safe-bottom', isOpen ? '0px' : SAFE_BOTTOM);
@@ -139,7 +139,8 @@ export function trackKeyboard(element: KeyboardElement, env: KeyboardEnv = windo
         if (holdTimer !== undefined && !isOpen) return;
         endHold();
         if (isOpen) env.localStorage.setItem(storageKey(), String(keyboardHeight));
-        apply(isOpen ? keyboardHeight : 0, isOpen);
+        // Focused with no keyboard, the baseline may be from a taller window; never exceed what is visible.
+        apply(isOpen ? keyboardHeight : 0, isOpen, focused && !isOpen ? visible : undefined);
     };
 
     const guessOpen = (keyboardHeight: number) => {

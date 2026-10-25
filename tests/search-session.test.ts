@@ -194,6 +194,20 @@ describe('SearchSession land options and re-pinning', () => {
         expect(session.rows()[session.active]).toEqual(before);
         expect(session.getQuery()).toBe('apple');
     });
+
+    it('keeps the active note when the pin is dropped or swapped', async () => {
+        const { session, files } = await setup(NOTES);
+        session.open(files.Banana, 'apple');
+        session.activate(2);
+        const before = session.rows()[2];
+        session.setCurrentNote(null);
+        expect(session.rows()[0].kind).toBe('result');
+        expect(session.rows()[session.active]).toEqual(before);
+        session.setCurrentNote(files.Cherry);
+        session.setCurrentNote(files.Apple);
+        expect(session.rows()[0]).toMatchObject({ kind: 'current', file: files.Apple });
+        expect(session.rows()[session.active]).toEqual(before);
+    });
 });
 
 describe('SearchSession terms', () => {
