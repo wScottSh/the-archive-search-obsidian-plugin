@@ -257,6 +257,38 @@
 	color: var(--text-faint);
 }
 
+/* ─── Operator row (keyboard open only) ───────────────────────── */
+
+.mobile-search-operators {
+	display: none;
+	gap: 6px;
+	padding-bottom: 6px;
+}
+
+.is-keyboard-open .mobile-search-operators {
+	display: flex;
+}
+
+.mobile-search-operators .mobile-search-operator-btn {
+	flex: 1;
+	min-width: 0;
+	height: 36px;
+	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 18px;
+	background: var(--background-secondary);
+	box-shadow: none;
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.mobile-search-operators .mobile-search-operator-btn:active {
+	background: var(--background-modifier-hover);
+}
+
 /* ─── Mobile result list ──────────────────────────────────────── */
 
 .mobile-search-results {
