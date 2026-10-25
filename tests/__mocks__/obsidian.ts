@@ -43,3 +43,15 @@ export class WorkspaceLeaf { }
 export class MarkdownPostProcessorContext { }
 
 export function setIcon(el: HTMLElement, icon: string): void { }
+
+export class MarkdownView {
+    file: TFile | null = null;
+    editor: any = null;
+}
+
+export class Notice {
+    static messages: string[] = [];
+    constructor(message: string) {
+        Notice.messages.push(message);
+    }
+}

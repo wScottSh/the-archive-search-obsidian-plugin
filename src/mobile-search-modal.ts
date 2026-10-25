@@ -8,12 +8,14 @@
  *   (back/forward, input, clear, close)
  * - Go on the keyboard opens the marked row (an exact title marks its note)
  * - Tapping a row opens the note at its first match and closes search
+ * - The eye on a file row peeks at the whole note (Quick Look) without leaving search
  */
 
-import { App, Modal, setIcon } from 'obsidian';
+import { App, Modal, TFile, setIcon } from 'obsidian';
 import type TheArchiveSearchPlugin from '../main';
 import { trackKeyboard } from './keyboard-tracker';
 import { insertOperator, Operator } from './operator-insert';
+import { QuickLook } from './quick-look';
 import { ObsidianWorkspace } from './obsidian-workspace';
 import { SearchSession, Row, highlightPieces } from './search-session';
 import type { SnippetPiece } from './search-engine';
@@ -31,6 +33,7 @@ export class MobileSearchModal extends Modal {
     private clearEl: HTMLElement;
     private stopTrackingKeyboard: (() => void) | undefined;
     private unsubscribe: (() => void) | undefined;
+    private quickLook: QuickLook | undefined;
 
     private initialQuery: string | undefined;
     /** Query the list was last rendered for; the list returns to the thumb when it changes. */
@@ -141,6 +144,7 @@ export class MobileSearchModal extends Modal {
     }
 
     onClose(): void {
+        this.quickLook?.close();
         this.unsubscribe?.();
         this.unsubscribe = undefined;
         this.stopTrackingKeyboard?.();
@@ -206,10 +210,40 @@ export class MobileSearchModal extends Modal {
 
         const folder = row.file.parent?.path || '';
         if (folder) rowEl.createSpan({ cls: 'mobile-search-row-folder', text: folder });
+        this.createEyeButton(rowEl, row.file, index, terms);
 
         if (row.kind === 'result' && this.plugin.settings.showMobilePreviews && row.result.snippet) {
             this.appendPieces(rowEl.createDiv({ cls: 'mobile-search-row-snippet' }), row.result.snippet);
         }
+    }
+
+    /** Eye on a file row: peek at the note. Does not select the row or touch the keyboard. */
+    private createEyeButton(rowEl: HTMLElement, file: TFile, index: number, terms: string[]): void {
+        const eyeEl = rowEl.createEl('button', { cls: 'mobile-search-eye-btn' });
+        setIcon(eyeEl, 'eye');
+        eyeEl.setAttribute('aria-label', 'Quick Look');
+        eyeEl.addEventListener('mousedown', (e) => e.preventDefault());
+        eyeEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.openQuickLook(file, index, terms);
+        });
+    }
+
+    private openQuickLook(file: TFile, index: number, terms: string[]): void {
+        this.quickLook?.close();
+        this.inputEl.blur();
+        this.quickLook = new QuickLook(this.contentEl, {
+            app: this.app,
+            file,
+            terms,
+            onOpen: () => {
+                this.session.land(index);
+                this.close();
+            },
+            onClose: () => {
+                this.quickLook = undefined;
+            },
+        });
     }
 
     private appendPieces(parent: HTMLElement, pieces: SnippetPiece[]): void {
