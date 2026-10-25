@@ -1,7 +1,7 @@
 /**
  * Search engine that indexes the vault and evaluates parsed boolean queries.
  *
- * - Builds an in-memory index of filename + content (lowercased for case-insensitive search)
+ * - Builds an in-memory index of filename + content (case-folded for case-insensitive search)
  * - Listens to vault events for incremental updates
  * - Evaluates an AST against the index to produce sorted results
  * - Supports folder exclusion and respecting Obsidian's native excluded files
@@ -16,9 +16,63 @@ import type { SortOrder, ArchiveSearchSettings } from './settings';
 
 export interface IndexEntry {
     file: TFile;
-    filename: string;      // lowercased basename (no extension)
-    content: string;       // lowercased full text content
+    filename: string;      // case-folded basename (no extension)
+    content: string;       // case-folded full text content, same length as rawContent
+    rawContent: string;    // original-case full text content (for snippets)
     rawFilename: string;   // original-case basename (no extension)
+}
+
+// ─── Snippet Piece ───────────────────────────────────────────────
+
+/** A run of snippet text in original case; `hit` marks a search-term match. */
+export interface SnippetPiece {
+    text: string;
+    hit: boolean;
+}
+
+/**
+ * Lowercase without changing length, so offsets into the result are offsets
+ * into `text`. The few characters whose lowercase is longer (Turkish `İ`) keep
+ * their case.
+ */
+export function foldCase(text: string): string {
+    const lower = text.toLowerCase();
+    if (lower.length === text.length) return lower;
+    let folded = '';
+    for (const char of text) {
+        const lowerChar = char.toLowerCase();
+        folded += lowerChar.length === char.length ? lowerChar : char;
+    }
+    return folded;
+}
+
+/**
+ * Split text into pieces, flagging case-insensitive matches of any term.
+ * Overlapping matches become adjacent hit pieces; at equal starts the longest wins.
+ */
+export function highlightPieces(text: string, terms: string[]): SnippetPiece[] {
+    const folded = foldCase(text);
+    const ranges: Array<[number, number]> = [];
+    for (const term of terms) {
+        const t = foldCase(term);
+        if (!t) continue;
+        for (let pos = folded.indexOf(t); pos !== -1; pos = folded.indexOf(t, pos + t.length)) {
+            ranges.push([pos, pos + t.length]);
+        }
+    }
+    ranges.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+
+    const pieces: SnippetPiece[] = [];
+    let cursor = 0;
+    for (const [rs, re] of ranges) {
+        if (re <= cursor) continue;
+        const hs = Math.max(rs, cursor);
+        if (hs > cursor) pieces.push({ text: text.substring(cursor, hs), hit: false });
+        pieces.push({ text: text.substring(hs, re), hit: true });
+        cursor = re;
+    }
+    if (cursor < text.length || pieces.length === 0) pieces.push({ text: text.substring(cursor), hit: false });
+    return pieces;
 }
 
 // ─── Search Result ───────────────────────────────────────────────
@@ -27,7 +81,7 @@ export interface SearchResult {
     file: TFile;
     filename: string;         // original-case basename
     matchInFilename: boolean; // true if any search term matched in the filename
-    snippet?: string;
+    snippet?: SnippetPiece[]; // original-case pieces, hits flagged
 }
 
 // ─── Search Engine ───────────────────────────────────────────────
@@ -37,6 +91,7 @@ export class SearchEngine {
     private settings: ArchiveSearchSettings;
     private index: Map<string, IndexEntry> = new Map();
     private _ready = false;
+    private removalListeners = new Set<(deleted: TAbstractFile | null) => void>();
 
     constructor(app: App, settings: ArchiveSearchSettings) {
         this.app = app;
@@ -116,6 +171,22 @@ export class SearchEngine {
     }
 
     /**
+     * Call `fn` once the index has caught up with a deleted or renamed note,
+     * so an open list can drop the stale row. `deleted` is the deleted file,
+     * or null for a rename. Returns an unsubscribe.
+     */
+    onNoteRemoved(fn: (deleted: TAbstractFile | null) => void): () => void {
+        this.removalListeners.add(fn);
+        return () => {
+            this.removalListeners.delete(fn);
+        };
+    }
+
+    private noteRemoved(deleted: TAbstractFile | null): void {
+        this.removalListeners.forEach((fn) => fn(deleted));
+    }
+
+    /**
      * Register vault event listeners for incremental index updates.
      * Returns an object of event handlers for cleanup via plugin.registerEvent().
      */
@@ -145,6 +216,7 @@ export class SearchEngine {
             onModify: debouncedModify,
             onDelete: (file: TAbstractFile) => {
                 this.index.delete(file.path);
+                this.noteRemoved(file);
             },
             onRename: async (file: TAbstractFile, oldPath: string) => {
                 this.index.delete(oldPath);
@@ -153,6 +225,7 @@ export class SearchEngine {
                         await this.indexFile(file);
                     }
                 }
+                this.noteRemoved(null);
             },
         };
     }
@@ -166,8 +239,9 @@ export class SearchEngine {
             const basename = file.basename;
             this.index.set(file.path, {
                 file,
-                filename: basename.toLowerCase(),
-                content: content.toLowerCase(),
+                filename: foldCase(basename),
+                content: foldCase(content),
+                rawContent: content,
                 rawFilename: basename,
             });
         } catch {
@@ -186,7 +260,7 @@ export class SearchEngine {
         }
 
         const results: SearchResult[] = [];
-        const queryLower = query.toLowerCase();
+        const queryLower = foldCase(query);
         const positiveTerms = extractSearchTerms(ast);
 
         for (const entry of this.index.values()) {
@@ -256,11 +330,11 @@ export class SearchEngine {
     evaluate(node: SearchNode, entry: IndexEntry): boolean {
         switch (node.type) {
             case 'WORD': {
-                const term = node.value.toLowerCase();
+                const term = foldCase(node.value);
                 return entry.filename.includes(term) || entry.content.includes(term);
             }
             case 'PHRASE': {
-                const phrase = node.value.toLowerCase();
+                const phrase = foldCase(node.value);
                 return entry.filename.includes(phrase) || entry.content.includes(phrase);
             }
             case 'AND':
@@ -274,13 +348,17 @@ export class SearchEngine {
 
     // ─── Snippet Production ──────────────────────────────────────────
 
-    private extractSnippet(entry: IndexEntry, terms: string[]): string | undefined {
-        if (terms.length === 0) return undefined;
+    /**
+     * Build an original-case snippet around the first term match, split into
+     * pieces so views can mark hits. Matching runs on the case-folded index,
+     * whose offsets line up with the original text.
+     */
+    private extractSnippet(entry: IndexEntry, terms: string[]): SnippetPiece[] | undefined {
         const content = entry.content;
         let firstPos = -1;
         let matchLen = 0;
         for (const term of terms) {
-            const t = term.toLowerCase();
+            const t = foldCase(term);
             if (!t) continue;
             const pos = content.indexOf(t);
             if (pos !== -1 && (firstPos === -1 || pos < firstPos)) {
@@ -291,13 +369,14 @@ export class SearchEngine {
         if (firstPos === -1) return undefined;
         const windowSize = 100;
         const half = Math.floor(windowSize / 2);
-        let start = Math.max(0, firstPos - half);
-        let end = Math.min(content.length, firstPos + matchLen + half);
-        let inner = content.substring(start, end).trim();
-        let snippet = inner;
-        if (start > 0) snippet = inner ? '... ' + inner : '...';
-        if (end < content.length) snippet = snippet ? snippet + '...' : '...';
-        snippet = snippet.replace(/\.{3,}/g, '...');
-        return snippet || undefined;
+        const start = Math.max(0, firstPos - half);
+        const end = Math.min(content.length, firstPos + matchLen + half);
+        const inner = entry.rawContent.substring(start, end).trim();
+        if (!inner) return undefined;
+
+        const pieces = highlightPieces(inner, terms);
+        if (start > 0) pieces.unshift({ text: '... ', hit: false });
+        if (end < content.length) pieces.push({ text: '...', hit: false });
+        return pieces;
     }
 }

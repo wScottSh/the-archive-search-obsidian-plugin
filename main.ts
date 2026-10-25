@@ -15,12 +15,15 @@ import {
 	ArchiveSearchSettingTab,
 } from './src/settings';
 import { registerWikiLinkDomHandler, createWikiLinkEditorExtension } from './src/wiki-link-handler';
+import { SearchSession } from './src/search-session';
 import { MobileSearchModal } from './src/mobile-search-modal';
 import { searchHighlightField } from './src/editor-highlight';
 
 export default class TheArchiveSearchPlugin extends Plugin {
 	settings: ArchiveSearchSettings;
 	searchEngine: SearchEngine;
+	/** One mobile search session per plugin instance, so history outlives the modal. */
+	mobileSession: SearchSession | null = null;
 	private ribbonIconEl: HTMLElement | null = null;
 
 	async onload(): Promise<void> {
@@ -213,7 +216,7 @@ export default class TheArchiveSearchPlugin extends Plugin {
 					view.setQuery(query);
 					// Delay focus: setQuery triggers openFile() which steals
 					// focus to the editor. Wait for that + highlights to settle.
-					setTimeout(() => view.focusInput(), 150);
+					setTimeout(() => view.focusInput(false), 150);
 				} else {
 					view.focusInput();
 				}

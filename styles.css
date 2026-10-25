@@ -130,113 +130,269 @@
 
 /* ─── Mobile search modal ─────────────────────────────────────── */
 
-.mobile-search-modal {
-	width: 100vw;
-	height: 100vh;
-	max-width: 100vw;
-	max-height: 100vh;
-	border-radius: 0;
-	margin: 0;
-	position: fixed;
-	top: 0;
-	left: 0;
+/*
+ * Full-screen surface. The keyboard tracker sets --mobile-search-visible-height,
+ * --mobile-search-top and --mobile-search-safe-bottom on the modal; the
+ * fallbacks cover the moment before it runs. Selectors carry extra classes
+ * to beat Obsidian's phone modal rules without !important.
+ */
+.modal-container.mobile-search-container {
+	--dialog-width: 100vw;
+	--dialog-max-width: 100vw;
+	--dialog-max-height: 100vh;
+	--modal-radius: 0;
+	align-items: flex-start;
 }
 
-.mobile-search-content {
+.modal-container.mobile-search-container .modal.mobile-search-modal {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: var(--mobile-search-top, 0);
+	width: 100vw;
+	max-width: none;
+	height: var(--mobile-search-visible-height, 100%);
+	max-height: none;
+	margin: 0;
+	padding: 0 var(--safe-area-inset-right, 0px) 0 var(--safe-area-inset-left, 0px);
+	border: 0;
+	border-radius: 0;
+	overflow: hidden;
+	/* Obsidian's phone slide-in sets an inline transition, which wins while it runs */
+	transition: height 300ms cubic-bezier(0.12, 0, 0.44, 0.99);
+}
+
+/* Obsidian slides modals in on phones only; tablets get the same gentle entrance here */
+body:not(.is-phone) .modal-container.mobile-search-container .modal.mobile-search-modal {
+	animation: mobile-search-slide-in 250ms cubic-bezier(0.12, 0, 0.44, 0.99);
+}
+
+@keyframes mobile-search-slide-in {
+	from {
+		transform: translateY(40px);
+		opacity: 0;
+	}
+}
+
+.mobile-search-modal .modal-close-button,
+.mobile-search-modal .modal-header-button,
+.mobile-search-modal .modal-header {
+	display: none;
+}
+
+.modal.mobile-search-modal .modal-content.mobile-search-content {
 	display: flex;
 	flex-direction: column;
 	height: 100%;
-	padding: 0 !important;
+	padding: 0;
+	overflow: hidden;
+	position: relative;
 }
 
-.mobile-search-header {
+/* ─── Top bar ─────────────────────────────────────────────────── */
+
+.mobile-search-top-bar {
+	display: flex;
+	flex-shrink: 0;
+	align-items: baseline;
+	gap: 10px;
+	padding: calc(var(--safe-area-inset-top, 0px) + 8px) 12px 6px 16px;
+}
+
+.mobile-search-title {
+	font-size: var(--font-ui-large);
+	font-weight: var(--font-bold);
+}
+
+.mobile-search-match-count {
+	flex: 1;
+	min-width: 0;
+	color: var(--text-faint);
+	font-size: var(--font-ui-small);
+	font-variant-numeric: tabular-nums;
+}
+
+.mobile-search-top-bar .mobile-search-select-btn {
+	flex-shrink: 0;
+	height: auto;
+	padding: 6px 4px;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--text-accent);
+	font-size: var(--font-ui-medium);
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Docked capsule ──────────────────────────────────────────── */
+
+.mobile-search-dock {
+	flex-shrink: 0;
+	padding: 6px 10px max(var(--mobile-search-safe-bottom, 0px), 8px);
+	background: var(--background-primary);
+	transition: padding-bottom 300ms cubic-bezier(0.12, 0, 0.44, 0.99);
+}
+
+.mobile-search-capsule {
 	display: flex;
 	align-items: center;
-	gap: 6px;
-	padding: 10px 12px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	flex-shrink: 0;
+	gap: 2px;
+	height: 52px;
+	padding: 0 4px;
+	border-radius: 26px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: var(--shadow-s);
 }
 
-.mobile-search-close {
+.mobile-search-capsule .mobile-search-icon-btn {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 36px;
-	height: 36px;
-	min-width: 36px;
-	border-radius: 6px;
-	cursor: pointer;
+	flex-shrink: 0;
+	width: 38px;
+	height: 40px;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 20px;
+	background: none;
+	box-shadow: none;
 	color: var(--text-muted);
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
 }
 
-.mobile-search-close:active {
+.mobile-search-capsule .mobile-search-icon-btn svg {
+	width: 20px;
+	height: 20px;
+}
+
+.mobile-search-capsule .mobile-search-icon-btn:active {
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
 }
 
-.mobile-search-input {
-	flex: 1;
-	padding: 8px 12px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
-	background: var(--background-primary);
-	color: var(--text-normal);
-	font-size: 16px;
-	/* Prevents iOS zoom on focus */
-	outline: none;
-	min-width: 0;
+/* Still takes the press, so the tap cannot fall through and drop the keyboard */
+.mobile-search-capsule .mobile-search-icon-btn.is-disabled {
+	opacity: 0.3;
+	cursor: default;
 }
 
-.mobile-search-input:focus {
-	border-color: var(--interactive-accent);
-	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+.mobile-search-capsule .mobile-search-icon-btn.is-hidden {
+	display: none;
+}
+
+/* The element selector ties with core's input[type='text']:active and wins on source order */
+.mobile-search-capsule input.mobile-search-input {
+	flex: 1;
+	min-width: 0;
+	height: 40px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 20px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	/* 16px or more prevents iOS zoom on focus */
+	font-size: 16px;
+	outline: none;
+	box-shadow: none;
+}
+
+.mobile-search-capsule input.mobile-search-input:focus {
+	box-shadow: inset 0 0 0 1px var(--interactive-accent);
 }
 
 .mobile-search-input::placeholder {
 	color: var(--text-faint);
 }
 
-.mobile-search-nav {
-	display: flex;
-	gap: 2px;
+/* ─── Operator row (keyboard open only) ───────────────────────── */
+
+.mobile-search-operators {
+	display: none;
+	gap: 6px;
+	padding-bottom: 6px;
 }
 
-.mobile-search-nav-btn {
+.is-keyboard-open .mobile-search-operators {
 	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 36px;
+}
+
+.mobile-search-operators .mobile-search-operator-btn {
+	flex: 1;
+	min-width: 0;
 	height: 36px;
-	min-width: 36px;
-	border-radius: 6px;
-	cursor: pointer;
-	color: var(--text-muted);
-}
-
-.mobile-search-nav-btn:active {
-	background: var(--background-modifier-hover);
+	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 18px;
+	background: var(--background-secondary);
+	box-shadow: none;
 	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
 }
 
-.mobile-search-nav-btn.is-disabled {
-	opacity: 0.3;
-	cursor: default;
-	pointer-events: none;
+.mobile-search-operators .mobile-search-operator-btn:active {
+	background: var(--background-modifier-hover);
 }
 
 /* ─── Mobile result list ──────────────────────────────────────── */
 
+/*
+ * Bottom-up: column-reverse puts the first row nearest the capsule, so
+ * the current note sits right above it and results read upward.
+ */
 .mobile-search-results {
 	flex: 1;
+	display: flex;
+	flex-direction: column-reverse;
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;
-	padding: 4px 0;
+	min-height: 0;
+	padding: 0 0 4px;
 }
 
-.mobile-search-result-item {
+.mobile-search-results .mobile-search-recents {
+	display: flex;
+	flex-shrink: 0;
+	gap: 6px;
+	padding: 8px 16px;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.mobile-search-recents::-webkit-scrollbar {
+	display: none;
+}
+
+.mobile-search-recents .mobile-search-chip {
+	flex-shrink: 0;
+	max-width: 220px;
+	height: auto;
+	min-height: 32px;
+	padding: 4px 12px;
+	border-radius: 16px;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	background: var(--background-secondary);
+	box-shadow: none;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mobile-search-recents .mobile-search-chip:active {
+	background: var(--background-modifier-hover);
+}
+
+.mobile-search-results .mobile-search-row {
 	display: flex;
 	flex-wrap: wrap;
+	flex-shrink: 0;
 	align-items: baseline;
 	gap: 2px 8px;
 	padding: 12px 16px;
@@ -244,14 +400,45 @@
 	cursor: pointer;
 	font-size: 15px;
 	color: var(--text-normal);
-	border-bottom: 1px solid var(--background-modifier-border-focus);
+	border-top: 1px solid var(--background-modifier-border-focus);
+	-webkit-tap-highlight-color: transparent;
+	/* Long-press selects the row, not its text */
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
 }
 
-.mobile-search-result-item:active {
+.mobile-search-results .mobile-search-row:active {
 	background: var(--background-modifier-hover);
 }
 
-.mobile-search-result-snippet {
+.mobile-search-results .mobile-search-row.is-active {
+	background: var(--background-modifier-hover);
+}
+
+.mobile-search-row-title {
+	flex: 1;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mobile-search-row-title.is-filename-match {
+	font-weight: 600;
+}
+
+.mobile-search-row-folder {
+	flex-shrink: 0;
+	max-width: 40%;
+	font-size: 11px;
+	color: var(--text-faint);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mobile-search-row-snippet {
 	flex: 0 0 100%;
 	font-size: 13px;
 	color: var(--text-muted);
@@ -263,11 +450,210 @@
 	overflow: hidden;
 }
 
-.mobile-search-empty {
+.mobile-search-hit {
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.mobile-search-results .mobile-search-row-current,
+.mobile-search-results .mobile-search-row-create {
+	color: var(--text-muted);
+}
+
+.mobile-search-row-icon {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+	color: var(--text-faint);
+}
+
+.mobile-search-row-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.mobile-search-results .mobile-search-empty {
+	flex-shrink: 0;
 	padding: 24px 16px;
 	text-align: center;
 	color: var(--text-faint);
 	font-size: 14px;
+}
+
+/* ─── Selection mode ──────────────────────────────────────────── */
+
+.mobile-search-selection-bar {
+	display: none;
+	align-items: center;
+	gap: 6px;
+	height: 52px;
+	padding: 0 8px 0 14px;
+	border-radius: 26px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: var(--shadow-s);
+}
+
+.is-selecting .mobile-search-selection-bar {
+	display: flex;
+}
+
+.is-selecting .mobile-search-capsule,
+.is-selecting .mobile-search-operators {
+	display: none;
+}
+
+.mobile-search-selection-count {
+	flex: 1;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.mobile-search-selection-bar .mobile-search-selection-btn {
+	flex-shrink: 0;
+	height: 36px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 18px;
+	background: none;
+	box-shadow: none;
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.mobile-search-selection-bar .mobile-search-selection-btn:active {
+	background: var(--background-modifier-hover);
+}
+
+.mobile-search-selection-bar .mobile-search-selection-btn.is-primary {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.mobile-search-selection-bar .mobile-search-selection-btn.is-disabled {
+	opacity: 0.3;
+	pointer-events: none;
+}
+
+.mobile-search-results .mobile-search-row.is-multi-selected {
+	background: var(--background-modifier-hover);
+}
+
+.mobile-search-results .mobile-search-row-checkbox {
+	flex-shrink: 0;
+	align-self: center;
+	margin: 0;
+	pointer-events: none;
+}
+
+/* ─── Eye button and Quick Look ───────────────────────────────── */
+
+.mobile-search-results .mobile-search-eye-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	align-self: center;
+	margin-left: auto;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.mobile-search-results .mobile-search-eye-btn svg {
+	width: 18px;
+	height: 18px;
+}
+
+.mobile-search-content .mobile-search-quicklook {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	background: var(--background-primary);
+}
+
+.mobile-search-quicklook-header,
+.mobile-search-quicklook-footer {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+	padding: 8px 12px;
+}
+
+.mobile-search-quicklook-header {
+	padding-top: max(var(--safe-area-inset-top, 0px), 8px);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.mobile-search-quicklook-footer {
+	padding-bottom: max(var(--mobile-search-safe-bottom, 0px), 8px);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.mobile-search-quicklook-title {
+	flex: 1;
+	min-width: 0;
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mobile-search-quicklook .mobile-search-quicklook-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 44px;
+	min-width: 44px;
+}
+
+.mobile-search-quicklook-position {
+	flex-shrink: 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	font-variant-numeric: tabular-nums;
+}
+
+.mobile-search-quicklook .mobile-search-quicklook-btn.is-disabled {
+	opacity: 0.35;
+}
+
+.mobile-search-quicklook-footer .mobile-search-quicklook-btn {
+	flex: 1;
+}
+
+.mobile-search-quicklook-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+	padding: 12px 16px;
+	font-size: 15px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	user-select: text;
+	/* Vertical drags scroll the note; horizontal ones reach the swipe handler */
+	touch-action: pan-y;
+}
+
+.mobile-search-quicklook-body .mobile-search-hit {
+	background: var(--text-highlight-bg);
 }
 
 /* ─── Current note pinned row ─────────────────────────────────── */
@@ -298,14 +684,12 @@
 
 /* ─── Create new note row ─────────────────────────────────────── */
 
-.omnibar-create-item,
-.mobile-search-create-item {
+.omnibar-create-item {
 	color: var(--text-muted);
 	border-top: 1px solid var(--background-modifier-border);
 }
 
-.omnibar-create-item:hover,
-.mobile-search-create-item:active {
+.omnibar-create-item:hover {
 	color: var(--text-normal);
 }
 

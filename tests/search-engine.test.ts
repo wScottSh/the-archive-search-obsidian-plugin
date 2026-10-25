@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SearchEngine, IndexEntry } from '../src/search-engine';
+import { SearchEngine, IndexEntry, SnippetPiece, foldCase, highlightPieces } from '../src/search-engine';
 import { parseQuery, SearchNode } from '../src/parser';
 import { extractSearchTerms } from '../src/editor-highlight';
 import { TFile } from 'obsidian';
@@ -15,8 +15,9 @@ import { TFile } from 'obsidian';
 function mockEntry(filename: string, content: string): IndexEntry {
     return {
         file: { path: filename + '.md', basename: filename } as unknown as TFile,
-        filename: filename.toLowerCase(),
-        content: content.toLowerCase(),
+        filename: foldCase(filename),
+        content: foldCase(content),
+        rawContent: content,
         rawFilename: filename,
     };
 }
@@ -136,11 +137,23 @@ describe('SearchEngine snippet extraction', () => {
         );
     }
 
-    function getSnippet(query: string, filename: string, content: string): string | undefined {
+    function getPieces(query: string, filename: string, content: string): SnippetPiece[] | undefined {
         const ast = parseQuery(query);
         const terms = ast ? extractSearchTerms(ast) : [];
         const entry = mockEntry(filename, content);
         return (createEngine() as any).extractSnippet(entry, terms);
+    }
+
+    function joinPieces(pieces: SnippetPiece[] | undefined): string | undefined {
+        return pieces?.map(p => p.text).join('');
+    }
+
+    function getSnippet(query: string, filename: string, content: string): string | undefined {
+        return joinPieces(getPieces(query, filename, content));
+    }
+
+    function hits(pieces: SnippetPiece[] | undefined): string[] {
+        return (pieces ?? []).filter(p => p.hit).map(p => p.text);
     }
 
     it('produces snippet for simple word match', () => {
@@ -198,7 +211,7 @@ describe('SearchEngine snippet extraction', () => {
         const results = engine.search('special');
         expect(results.length).toBe(1);
         expect(results[0].snippet).toBeDefined();
-        expect(results[0].snippet).toContain('special');
+        expect(joinPieces(results[0].snippet)).toContain('special');
         expect(results[0]).toHaveProperty('snippet');
     });
 
@@ -209,5 +222,73 @@ describe('SearchEngine snippet extraction', () => {
         const results = (engine as any).allFilesSorted();
         expect(results.length).toBe(1);
         expect(results[0].snippet).toBeUndefined();
+    });
+
+    it('keeps the note\'s original capitalization and marks the hit', () => {
+        const pieces = getPieces('spaced', 'f', 'Notes on Spaced Repetition for study');
+        expect(joinPieces(pieces)).toBe('Notes on Spaced Repetition for study');
+        expect(hits(pieces)).toEqual(['Spaced']);
+    });
+
+    it('matches case-insensitively in either direction', () => {
+        expect(hits(getPieces('SPACED', 'f', 'about spaced repetition'))).toEqual(['spaced']);
+        expect(hits(getPieces('Spaced', 'f', 'about SPACED repetition'))).toEqual(['SPACED']);
+    });
+
+    it('marks every occurrence of every term in the window', () => {
+        const pieces = getPieces('foo OR bar', 'f', 'Foo then BAR then foo again');
+        expect(hits(pieces)).toEqual(['Foo', 'BAR', 'foo']);
+    });
+
+    it('marks phrase hits as one piece', () => {
+        const pieces = getPieces('"hello world"', 'f', 'say Hello World today');
+        expect(hits(pieces)).toEqual(['Hello World']);
+    });
+
+    it('pieces carry ellipses as non-hit text in original case', () => {
+        const content = 'Intro '.repeat(30) + 'Needle ' + 'Outro '.repeat(30);
+        const pieces = getPieces('needle', 'f', content)!;
+        expect(pieces[0]).toEqual({ text: '... ', hit: false });
+        expect(pieces[pieces.length - 1]).toEqual({ text: '...', hit: false });
+        expect(hits(pieces)).toEqual(['Needle']);
+        expect(joinPieces(pieces)).toContain('Intro');
+    });
+
+    it('keeps original case after a character whose lowercase is longer', () => {
+        const pieces = getPieces('kebap', 'f', 'İstanbul Kebap House');
+        expect(joinPieces(pieces)).toBe('İstanbul Kebap House');
+        expect(hits(pieces)).toEqual(['Kebap']);
+    });
+
+    it('marks a term found inside another term once, as the longer hit', () => {
+        expect(hits(getPieces('foo foobar', 'f', 'a Foobar here'))).toEqual(['Foobar']);
+    });
+
+    it('search() returns original-case pieces', () => {
+        const engine = createEngine();
+        (engine as any).index.set('/n.md', mockEntry('n', 'A note on Spaced Repetition'));
+        const results = engine.search('spaced');
+        expect(hits(results[0].snippet)).toEqual(['Spaced']);
+    });
+});
+
+describe('highlightPieces', () => {
+    it('flags case-insensitive hits and keeps original case', () => {
+        expect(highlightPieces('An Apple pie', ['apple'])).toEqual([
+            { text: 'An ', hit: false },
+            { text: 'Apple', hit: true },
+            { text: ' pie', hit: false },
+        ]);
+    });
+
+    it('returns the whole text when there are no terms', () => {
+        expect(highlightPieces('plain', [])).toEqual([{ text: 'plain', hit: false }]);
+    });
+
+    it('lines hits up with the original text after a dotted capital I', () => {
+        expect(highlightPieces('İzmir pie', ['pie'])).toEqual([
+            { text: 'İzmir ', hit: false },
+            { text: 'pie', hit: true },
+        ]);
     });
 });
