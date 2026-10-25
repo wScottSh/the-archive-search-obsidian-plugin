@@ -19,6 +19,7 @@ import { parseQuery } from './parser';
 import { extractSearchTerms, highlightInEditor } from './editor-highlight';
 import { EditorView } from '@codemirror/view';
 import { trackKeyboard } from './keyboard-tracker';
+import { insertOperator, Operator } from './operator-insert';
 
 interface NavEntry {
     query: string;
@@ -62,6 +63,7 @@ export class MobileSearchModal extends Modal {
 
         // ── Dock: capsule at the bottom edge ──
         const dockEl = contentEl.createDiv({ cls: 'mobile-search-dock' });
+        this.createOperatorRow(dockEl);
         const capsuleEl = dockEl.createDiv({ cls: 'mobile-search-capsule' });
 
         this.navBackEl = this.createIconButton(capsuleEl, 'arrow-left', 'Back', () => this.navigateBack());
@@ -116,6 +118,36 @@ export class MobileSearchModal extends Modal {
         buttonEl.addEventListener('mousedown', (e) => e.preventDefault());
         buttonEl.addEventListener('click', onClick);
         return buttonEl;
+    }
+
+    /**
+     * Operator row above the capsule; CSS shows it only while the keyboard is open.
+     * Buttons never take focus, so tapping one keeps the keyboard up.
+     */
+    private createOperatorRow(parent: HTMLElement): void {
+        const rowEl = parent.createDiv({ cls: 'mobile-search-operators' });
+        const operators: [Operator, string, string][] = [
+            ['phrase', '" "', 'Exact phrase'],
+            ['group', '( )', 'Group'],
+            ['or', 'OR', 'OR'],
+            ['not', 'NOT', 'NOT'],
+            ['tag', '#', 'Tag'],
+        ];
+        for (const [operator, text, label] of operators) {
+            const buttonEl = rowEl.createEl('button', { cls: 'mobile-search-operator-btn', text });
+            buttonEl.setAttribute('aria-label', label);
+            buttonEl.addEventListener('mousedown', (e) => e.preventDefault());
+            buttonEl.addEventListener('click', () => this.applyOperator(operator));
+        }
+    }
+
+    private applyOperator(operator: Operator): void {
+        const { value, selectionStart, selectionEnd } = this.inputEl;
+        const edit = insertOperator(value, selectionStart ?? value.length, selectionEnd ?? value.length, operator);
+        this.inputEl.value = edit.value;
+        this.inputEl.setSelectionRange(edit.caret, edit.caret);
+        this.executeSearch();
+        this.updateClearButton();
     }
 
     onClose(): void {
