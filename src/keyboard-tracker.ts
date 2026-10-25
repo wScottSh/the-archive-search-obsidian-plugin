@@ -105,8 +105,10 @@ export function trackKeyboard(element: KeyboardElement, env: KeyboardEnv = windo
             // Rotated: the old full height no longer applies.
             width = env.innerWidth;
             baseline = env.innerHeight;
-        } else if (!focused) {
-            baseline = Math.max(env.innerHeight, vvHeight);
+        } else {
+            // While focused the baseline may only grow, so it heals if it was taken from a shrunken window.
+            const fullHeight = Math.max(env.innerHeight, vvHeight);
+            baseline = focused ? Math.max(baseline, fullHeight) : fullHeight;
         }
 
         const visible = Math.min(env.innerHeight - obsidianKeyboardHeight(), vvHeight);
