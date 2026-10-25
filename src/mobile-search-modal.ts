@@ -212,7 +212,7 @@ export class MobileSearchModal extends Modal {
     private renderRow(row: Row, index: number, terms: string[]): void {
         const cls = `mobile-search-row mobile-search-row-${row.kind}`;
         const rowEl = this.resultListEl.createDiv({ cls });
-        this.watchLongPress(rowEl, index);
+        if (row.kind !== 'create') this.watchLongPress(rowEl, index);
         rowEl.addEventListener('click', () => {
             if (this.suppressClick) {
                 this.suppressClick = false;
@@ -296,7 +296,6 @@ export class MobileSearchModal extends Modal {
         for (const type of ['pointerup', 'pointercancel', 'pointerleave']) rowEl.addEventListener(type, cancel);
         // Android shows its own menu on a long press
         rowEl.addEventListener('contextmenu', (e) => e.preventDefault());
-
     }
 
     /**
