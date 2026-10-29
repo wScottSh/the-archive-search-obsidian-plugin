@@ -406,6 +406,9 @@ body:not(.is-phone) .modal-container.mobile-search-container .modal.mobile-searc
 	-webkit-user-select: none;
 	user-select: none;
 	-webkit-touch-callout: none;
+	/* Rows off screen skip style and layout until scrolled near; a row with a snippet is about 84px */
+	content-visibility: auto;
+	contain-intrinsic-block-size: auto 84px;
 }
 
 .mobile-search-results .mobile-search-row:active {
