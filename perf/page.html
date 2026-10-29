@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<link rel="stylesheet" href="../styles.css">
+<style>
+    body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        --text-normal: #dadada;
+        --text-muted: #b3b3b3;
+        --text-faint: #666;
+        --text-accent: #a68af9;
+        --text-on-accent: #fff;
+        --text-highlight-bg: rgba(255, 208, 0, 0.4);
+        --background-primary: #1e1e1e;
+        --background-secondary: #262626;
+        --background-secondary-alt: #363636;
+        --background-modifier-hover: rgba(255, 255, 255, 0.075);
+        --background-modifier-border: #363636;
+        --background-modifier-border-focus: #555;
+        --interactive-accent: #7f6df2;
+        --interactive-accent-hover: #8875ff;
+        --font-ui-small: 13px;
+        --font-ui-medium: 15px;
+        --font-ui-large: 20px;
+        --font-semibold: 600;
+        --font-bold: 700;
+        --shadow-s: 0 1px 2px rgba(0, 0, 0, 0.2);
+        background: var(--background-primary);
+        color: var(--text-normal);
+        height: 100vh;
+    }
+    .modal-container { position: fixed; inset: 0; display: flex; z-index: 10; }
+    .modal-bg { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); }
+    .modal { position: relative; background: var(--background-primary); display: flex; flex-direction: column; }
+</style>
+</head>
+<body class="is-mobile is-phone theme-dark">
+<script src="out/harness.js"></script>
+</body>
+</html>
