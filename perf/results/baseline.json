@@ -1,0 +1,479 @@
+{
+  "meta": {
+    "date": "2026-10-29T21:28:09.487Z",
+    "commit": "5676e83",
+    "dirty": false,
+    "runs": 5,
+    "cpuThrottle": 4,
+    "host": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+    "chromium": "156.0.8078.4",
+    "viewport": "411x914 @2.625 touch",
+    "keyGapMs": 180,
+    "keyboard": "330px over 250ms",
+    "scroll": "60px per frame for 1500ms"
+  },
+  "summary": {
+    "index": {
+      "longTaskCount": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "longTaskTotalMs": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "worstTaskMs": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "droppedFrames": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "worstFrameMs": {
+        "median": 16.7,
+        "min": 16.7,
+        "max": 16.8
+      },
+      "indexMs": {
+        "median": 84.89999985694885,
+        "min": 81.70000004768372,
+        "max": 90.10000014305115
+      },
+      "indexed": {
+        "median": 1639,
+        "min": 1639,
+        "max": 1639
+      }
+    },
+    "open": {
+      "longTaskCount": {
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "longTaskTotalMs": {
+        "median": 477,
+        "min": 464,
+        "max": 494
+      },
+      "worstTaskMs": {
+        "median": 477,
+        "min": 464,
+        "max": 494
+      },
+      "droppedFrames": {
+        "median": 27,
+        "min": 27,
+        "max": 28
+      },
+      "worstFrameMs": {
+        "median": 466.7,
+        "min": 466.6,
+        "max": 483.3
+      },
+      "tapToPaintMs": {
+        "median": 504.7000000476837,
+        "min": 499.5,
+        "max": 528.5
+      },
+      "rowsInDom": {
+        "median": 1640,
+        "min": 1640,
+        "max": 1640
+      }
+    },
+    "keyboard": {
+      "longTaskCount": {
+        "median": 3,
+        "min": 3,
+        "max": 4
+      },
+      "longTaskTotalMs": {
+        "median": 452,
+        "min": 417,
+        "max": 479
+      },
+      "worstTaskMs": {
+        "median": 164,
+        "min": 157,
+        "max": 179
+      },
+      "droppedFrames": {
+        "median": 22,
+        "min": 22,
+        "max": 24
+      },
+      "worstFrameMs": {
+        "median": 166.7,
+        "min": 166.6,
+        "max": 183.3
+      }
+    },
+    "type": {
+      "longTaskCount": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "longTaskTotalMs": {
+        "median": 1974,
+        "min": 1915,
+        "max": 2112
+      },
+      "worstTaskMs": {
+        "median": 667,
+        "min": 661,
+        "max": 763
+      },
+      "droppedFrames": {
+        "median": 114,
+        "min": 110,
+        "max": 122
+      },
+      "worstFrameMs": {
+        "median": 833.4,
+        "min": 833.3,
+        "max": 966.6
+      },
+      "worstKeyToPaintMs": {
+        "median": 849.1000001430511,
+        "min": 835.8000001907349,
+        "max": 981.1000001430511
+      },
+      "rowsInDom": {
+        "median": 246,
+        "min": 246,
+        "max": 246
+      }
+    },
+    "scroll": {
+      "longTaskCount": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "longTaskTotalMs": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "worstTaskMs": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "droppedFrames": {
+        "median": 2,
+        "min": 1,
+        "max": 2
+      },
+      "worstFrameMs": {
+        "median": 33.4,
+        "min": 33.3,
+        "max": 50
+      }
+    }
+  },
+  "runs": [
+    {
+      "vault": {
+        "notes": 1723,
+        "totalChars": 5853753
+      },
+      "index": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 0,
+        "worstFrameMs": 16.7,
+        "indexMs": 89,
+        "indexed": 1639
+      },
+      "open": {
+        "longTaskCount": 1,
+        "longTaskTotalMs": 494,
+        "worstTaskMs": 494,
+        "droppedFrames": 28,
+        "worstFrameMs": 483.3,
+        "tapToPaintMs": 525.3000001907349,
+        "rowsInDom": 1640,
+        "matchCount": "1639 notes",
+        "inputFocused": true
+      },
+      "keyboard": {
+        "longTaskCount": 3,
+        "longTaskTotalMs": 452,
+        "worstTaskMs": 179,
+        "droppedFrames": 24,
+        "worstFrameMs": 183.3
+      },
+      "type": {
+        "longTaskCount": 6,
+        "longTaskTotalMs": 1936,
+        "worstTaskMs": 662,
+        "droppedFrames": 112,
+        "worstFrameMs": 833.4,
+        "keyToPaintMs": [
+          835.8000001907349,
+          828.8999998569489,
+          199.09999990463257,
+          117.5
+        ],
+        "worstKeyToPaintMs": 835.8000001907349,
+        "query": "game",
+        "rowsInDom": 246,
+        "matchCount": "244 matches"
+      },
+      "scroll": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 2,
+        "worstFrameMs": 50
+      },
+      "typedRowsAtEnd": 246,
+      "allRowsAtEnd": 1640
+    },
+    {
+      "vault": {
+        "notes": 1723,
+        "totalChars": 5853753
+      },
+      "index": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 0,
+        "worstFrameMs": 16.7,
+        "indexMs": 90.10000014305115,
+        "indexed": 1639
+      },
+      "open": {
+        "longTaskCount": 1,
+        "longTaskTotalMs": 476,
+        "worstTaskMs": 476,
+        "droppedFrames": 27,
+        "worstFrameMs": 466.6,
+        "tapToPaintMs": 503.7000000476837,
+        "rowsInDom": 1640,
+        "matchCount": "1639 notes",
+        "inputFocused": true
+      },
+      "keyboard": {
+        "longTaskCount": 3,
+        "longTaskTotalMs": 421,
+        "worstTaskMs": 157,
+        "droppedFrames": 22,
+        "worstFrameMs": 166.7
+      },
+      "type": {
+        "longTaskCount": 6,
+        "longTaskTotalMs": 1915,
+        "worstTaskMs": 661,
+        "droppedFrames": 110,
+        "worstFrameMs": 833.3,
+        "keyToPaintMs": [
+          837.2000000476837,
+          805.5,
+          205,
+          118.10000014305115
+        ],
+        "worstKeyToPaintMs": 837.2000000476837,
+        "query": "game",
+        "rowsInDom": 246,
+        "matchCount": "244 matches"
+      },
+      "scroll": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 1,
+        "worstFrameMs": 33.4
+      },
+      "typedRowsAtEnd": 246,
+      "allRowsAtEnd": 1640
+    },
+    {
+      "vault": {
+        "notes": 1723,
+        "totalChars": 5853753
+      },
+      "index": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 0,
+        "worstFrameMs": 16.8,
+        "indexMs": 81.70000004768372,
+        "indexed": 1639
+      },
+      "open": {
+        "longTaskCount": 1,
+        "longTaskTotalMs": 477,
+        "worstTaskMs": 477,
+        "droppedFrames": 27,
+        "worstFrameMs": 466.7,
+        "tapToPaintMs": 504.7000000476837,
+        "rowsInDom": 1640,
+        "matchCount": "1639 notes",
+        "inputFocused": true
+      },
+      "keyboard": {
+        "longTaskCount": 3,
+        "longTaskTotalMs": 417,
+        "worstTaskMs": 164,
+        "droppedFrames": 22,
+        "worstFrameMs": 166.6
+      },
+      "type": {
+        "longTaskCount": 6,
+        "longTaskTotalMs": 1977,
+        "worstTaskMs": 667,
+        "droppedFrames": 114,
+        "worstFrameMs": 833.4,
+        "keyToPaintMs": [
+          849.1000001430511,
+          844,
+          219.20000004768372,
+          122.60000014305115
+        ],
+        "worstKeyToPaintMs": 849.1000001430511,
+        "query": "game",
+        "rowsInDom": 246,
+        "matchCount": "244 matches"
+      },
+      "scroll": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 2,
+        "worstFrameMs": 50
+      },
+      "typedRowsAtEnd": 246,
+      "allRowsAtEnd": 1640
+    },
+    {
+      "vault": {
+        "notes": 1723,
+        "totalChars": 5853753
+      },
+      "index": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 0,
+        "worstFrameMs": 16.8,
+        "indexMs": 84.89999985694885,
+        "indexed": 1639
+      },
+      "open": {
+        "longTaskCount": 1,
+        "longTaskTotalMs": 464,
+        "worstTaskMs": 464,
+        "droppedFrames": 27,
+        "worstFrameMs": 466.6,
+        "tapToPaintMs": 499.5,
+        "rowsInDom": 1640,
+        "matchCount": "1639 notes",
+        "inputFocused": true
+      },
+      "keyboard": {
+        "longTaskCount": 4,
+        "longTaskTotalMs": 479,
+        "worstTaskMs": 166,
+        "droppedFrames": 22,
+        "worstFrameMs": 166.8
+      },
+      "type": {
+        "longTaskCount": 6,
+        "longTaskTotalMs": 1974,
+        "worstTaskMs": 676,
+        "droppedFrames": 114,
+        "worstFrameMs": 849.9,
+        "keyToPaintMs": [
+          857.5999999046326,
+          834.2000000476837,
+          206.29999995231628,
+          129.59999990463257
+        ],
+        "worstKeyToPaintMs": 857.5999999046326,
+        "query": "game",
+        "rowsInDom": 246,
+        "matchCount": "244 matches"
+      },
+      "scroll": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 1,
+        "worstFrameMs": 33.3
+      },
+      "typedRowsAtEnd": 246,
+      "allRowsAtEnd": 1640
+    },
+    {
+      "vault": {
+        "notes": 1723,
+        "totalChars": 5853753
+      },
+      "index": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 0,
+        "worstFrameMs": 16.7,
+        "indexMs": 82.79999995231628,
+        "indexed": 1639
+      },
+      "open": {
+        "longTaskCount": 1,
+        "longTaskTotalMs": 493,
+        "worstTaskMs": 493,
+        "droppedFrames": 28,
+        "worstFrameMs": 483.3,
+        "tapToPaintMs": 528.5,
+        "rowsInDom": 1640,
+        "matchCount": "1639 notes",
+        "inputFocused": true
+      },
+      "keyboard": {
+        "longTaskCount": 4,
+        "longTaskTotalMs": 476,
+        "worstTaskMs": 162,
+        "droppedFrames": 22,
+        "worstFrameMs": 166.6
+      },
+      "type": {
+        "longTaskCount": 6,
+        "longTaskTotalMs": 2112,
+        "worstTaskMs": 763,
+        "droppedFrames": 122,
+        "worstFrameMs": 966.6,
+        "keyToPaintMs": [
+          844.2000000476837,
+          981.1000001430511,
+          201,
+          140.20000004768372
+        ],
+        "worstKeyToPaintMs": 981.1000001430511,
+        "query": "game",
+        "rowsInDom": 246,
+        "matchCount": "244 matches"
+      },
+      "scroll": {
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "worstTaskMs": 0,
+        "droppedFrames": 2,
+        "worstFrameMs": 33.4
+      },
+      "typedRowsAtEnd": 246,
+      "allRowsAtEnd": 1640
+    }
+  ]
+}
