@@ -10,6 +10,7 @@ import { SearchEngine, SnippetPiece, foldCase, highlightPieces } from '../src/se
 import { parseQuery, SearchNode } from '../src/parser';
 import { extractSearchTerms } from '../src/editor-highlight';
 import type { SortOrder } from '../src/settings';
+import { TFile } from 'obsidian';
 
 interface Note {
     path: string;
@@ -51,28 +52,32 @@ const QUERIES = [
 
 const SORT_ORDERS: SortOrder[] = ['a-z', 'z-a', 'created-new', 'created-old', 'modified-new', 'modified-old'];
 
-function makeApp(notes: Note[]) {
-    const files = notes.map((note) => {
-        const slash = note.path.lastIndexOf('/');
-        return {
-            path: note.path,
-            basename: note.path.substring(slash + 1).replace(/\.md$/, ''),
-            extension: 'md',
-            stat: { ctime: note.ctime, mtime: note.mtime, size: note.content.length },
-        };
+function basenameOf(path: string): string {
+    return path.substring(path.lastIndexOf('/') + 1).replace(/\.md$/, '');
+}
+
+function fileFor(note: Note): TFile {
+    return Object.assign(new TFile(), {
+        path: note.path,
+        basename: basenameOf(note.path),
+        extension: 'md',
+        stat: { ctime: note.ctime, mtime: note.mtime, size: note.content.length },
     });
-    const contents = new Map(files.map((file, i) => [file, notes[i].content]));
+}
+
+/** A vault over `notes`; edit the array to change what it reads. */
+function makeApp(notes: Note[]) {
     return {
         vault: {
-            getMarkdownFiles: () => files,
-            cachedRead: async (file: unknown) => contents.get(file as never) as string,
+            getMarkdownFiles: () => notes.map(fileFor),
+            cachedRead: async (file: TFile) => (notes.find((note) => note.path === file.path) as Note).content,
         },
     };
 }
 
-async function makeEngine(sortOrder: SortOrder): Promise<SearchEngine> {
+async function makeEngine(sortOrder: SortOrder, notes: Note[] = NOTES): Promise<SearchEngine> {
     const settings = { sortOrder, excludedFolders: [], respectObsidianExcluded: false };
-    const engine = new SearchEngine(makeApp(NOTES) as never, settings as never);
+    const engine = new SearchEngine(makeApp(notes) as never, settings as never);
     await engine.buildIndex();
     return engine;
 }
@@ -136,9 +141,9 @@ interface Projected {
     snippet: SnippetPiece[] | undefined;
 }
 
-function referenceSearch(query: string, sortOrder: SortOrder): Projected[] {
-    const entries: ReferenceEntry[] = NOTES.map((note) => {
-        const basename = note.path.substring(note.path.lastIndexOf('/') + 1).replace(/\.md$/, '');
+function referenceSearch(query: string, sortOrder: SortOrder, notes: Note[] = NOTES): Projected[] {
+    const entries: ReferenceEntry[] = notes.map((note) => {
+        const basename = basenameOf(note.path);
         return {
             path: note.path,
             filename: foldCase(basename),
@@ -199,6 +204,33 @@ describe('SearchEngine.search matches the original implementation', () => {
         project(engine, 'b');
         (engine as unknown as { settings: { sortOrder: SortOrder } }).settings.sortOrder = 'z-a';
         expect(project(engine, 'b')).toEqual(referenceSearch('b', 'z-a'));
+    });
+
+    it('keeps name order through notes created, deleted and renamed', async () => {
+        const notes = [...NOTES];
+        const engine = await makeEngine('z-a', notes);
+        const events = engine.getEventRefs();
+        const check = () => {
+            for (const query of ['', 'b', 'note', 'zebra']) expect(project(engine, query)).toEqual(referenceSearch(query, 'z-a', notes));
+        };
+        check();
+
+        const created = { path: 'Blah 2.md', content: 'new blah', ctime: 20, mtime: 20 };
+        notes.push(created);
+        await events.onCreate(fileFor(created));
+        check();
+
+        const deleted = notes.findIndex((note) => note.path === 'zebra 2.md');
+        events.onDelete(fileFor(notes[deleted]));
+        notes.splice(deleted, 1);
+        check();
+
+        const renamedAt = notes.findIndex((note) => note.path === 'Apple pie.md');
+        const renamed = { ...notes[renamedAt], path: 'zz/Banana pie.md' };
+        notes.splice(renamedAt, 1);
+        notes.push(renamed);
+        await events.onRename(fileFor(renamed), 'Apple pie.md');
+        check();
     });
 
     it('gives a result the same snippet on every read', async () => {

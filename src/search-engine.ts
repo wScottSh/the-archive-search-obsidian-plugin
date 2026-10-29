@@ -136,12 +136,18 @@ export function extractSnippet(entry: IndexEntry, terms: string[]): SnippetPiece
     return pieces;
 }
 
+function isNameOrder(order: SortOrder): boolean {
+    return order === 'a-z' || order === 'z-a';
+}
+
 // ─── Search Engine ───────────────────────────────────────────────
 
 export class SearchEngine {
     private app: App;
     private settings: ArchiveSearchSettings;
     private index: Map<string, IndexEntry> = new Map();
+    /** The index in name order, kept until the index or the name order changes. */
+    private nameSorted: { order: SortOrder; entries: IndexEntry[] } | null = null;
     private _ready = false;
     private removalListeners = new Set<(deleted: TAbstractFile | null) => void>();
 
@@ -165,6 +171,7 @@ export class SearchEngine {
      */
     async buildIndex(): Promise<void> {
         this.index.clear();
+        this.nameSorted = null;
         const files = this.app.vault.getMarkdownFiles();
         for (const file of files) {
             if (!this.isExcluded(file)) {
@@ -247,7 +254,7 @@ export class SearchEngine {
             async (file: TAbstractFile) => {
                 if (file instanceof TFile && file.extension === 'md') {
                     if (this.isExcluded(file)) {
-                        this.index.delete(file.path);
+                        this.removeEntry(file.path);
                     } else {
                         await this.indexFile(file);
                     }
@@ -267,11 +274,11 @@ export class SearchEngine {
             },
             onModify: debouncedModify,
             onDelete: (file: TAbstractFile) => {
-                this.index.delete(file.path);
+                this.removeEntry(file.path);
                 this.noteRemoved(file);
             },
             onRename: async (file: TAbstractFile, oldPath: string) => {
-                this.index.delete(oldPath);
+                this.removeEntry(oldPath);
                 if (file instanceof TFile && file.extension === 'md') {
                     if (!this.isExcluded(file)) {
                         await this.indexFile(file);
@@ -282,6 +289,11 @@ export class SearchEngine {
         };
     }
 
+    private removeEntry(path: string): void {
+        this.nameSorted = null;
+        this.index.delete(path);
+    }
+
     /**
      * Index a single file: read its content and store in the map.
      */
@@ -289,6 +301,7 @@ export class SearchEngine {
         try {
             const content = await this.app.vault.cachedRead(file);
             const basename = file.basename;
+            this.nameSorted = null;
             this.index.set(file.path, {
                 file,
                 filename: foldCase(basename),
@@ -315,13 +328,14 @@ export class SearchEngine {
         const queryLower = foldCase(query);
         const positiveTerms = extractSearchTerms(ast);
 
-        for (const entry of this.index.values()) {
+        const byName = isNameOrder(this.settings.sortOrder);
+        for (const entry of byName ? this.entriesByName() : this.index.values()) {
             if (this.evaluate(ast, entry)) {
                 results.push(new Match(entry, positiveTerms, entry.filename.includes(queryLower)));
             }
         }
 
-        this.sortResults(results);
+        if (!byName) this.sortResults(results);
         return results;
     }
 
@@ -330,29 +344,39 @@ export class SearchEngine {
      */
     private allFilesSorted(): SearchResult[] {
         const results: SearchResult[] = [];
-        for (const entry of this.index.values()) {
+        const byName = isNameOrder(this.settings.sortOrder);
+        for (const entry of byName ? this.entriesByName() : this.index.values()) {
             results.push({
                 file: entry.file,
                 filename: entry.rawFilename,
                 matchInFilename: false,
             });
         }
-        this.sortResults(results);
+        if (!byName) this.sortResults(results);
         return results;
+    }
+
+    /**
+     * Index entries in the name sort order, so matches come out sorted.
+     * Sorting by date stays per search: a note's dates change before its
+     * reindex lands.
+     */
+    private entriesByName(): IndexEntry[] {
+        const order = this.settings.sortOrder;
+        if (this.nameSorted?.order !== order) {
+            const entries = [...this.index.values()];
+            if (order === 'a-z') entries.sort((a, b) => a.rawFilename.localeCompare(b.rawFilename));
+            else entries.sort((a, b) => b.rawFilename.localeCompare(a.rawFilename));
+            this.nameSorted = { order, entries };
+        }
+        return this.nameSorted.entries;
     }
 
     /**
      * Sort results based on the current sort order setting.
      */
     private sortResults(results: SearchResult[]): void {
-        const order = this.settings.sortOrder;
-        switch (order) {
-            case 'a-z':
-                results.sort((a, b) => a.filename.localeCompare(b.filename));
-                break;
-            case 'z-a':
-                results.sort((a, b) => b.filename.localeCompare(a.filename));
-                break;
+        switch (this.settings.sortOrder) {
             case 'created-new':
                 results.sort((a, b) => b.file.stat.ctime - a.file.stat.ctime);
                 break;
