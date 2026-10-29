@@ -31,6 +31,12 @@ const SCROLL_GESTURE_PX = 8;
 const LONG_PRESS_MS = 450;
 /** Vibration (ms) confirming a long press, where the device supports it. */
 const LONG_PRESS_VIBRATE_MS = 10;
+/**
+ * Rows built at a time, about three screens. Building every row of a large
+ * vault on open, per keystroke and per keyboard frame is what made search
+ * janky on phones; the rest arrive as the list scrolls toward its far end.
+ */
+const ROW_BATCH = 50;
 
 /**
  * Pressing `el` must not take focus from the search input, or the keyboard
@@ -62,6 +68,10 @@ export class MobileSearchModal extends Modal {
     private renderedQuery: string | undefined;
     /** Set by a long press so the click that ends it does not also act; the next press resets it. */
     private suppressClick = false;
+    /** The rows and terms of the last render; the first `builtCount` rows are in the list. */
+    private rows: Row[] = [];
+    private terms: string[] = [];
+    private builtCount = 0;
 
     constructor(app: App, plugin: TheArchiveSearchPlugin, query?: string) {
         super(app);
@@ -94,6 +104,7 @@ export class MobileSearchModal extends Modal {
         // ── Result list (laid out bottom-up by CSS) ──
         this.resultListEl = contentEl.createDiv({ cls: 'mobile-search-results' });
         this.watchListScroll();
+        this.resultListEl.addEventListener('scroll', () => this.buildMoreNearEnd(), { passive: true });
 
         // ── Dock: capsule at the bottom edge ──
         const dockEl = contentEl.createDiv({ cls: 'mobile-search-dock' });
@@ -254,28 +265,47 @@ export class MobileSearchModal extends Modal {
 
     private renderList(): void {
         const query = this.session.getQuery();
-        const rows = this.session.rows();
-        const terms = this.session.terms();
-        const showEmpty = query.trim() !== '' && !rows.some((row) => row.kind === 'result');
+        const queryChanged = query !== this.renderedQuery;
+        this.rows = this.session.rows();
+        this.terms = this.session.terms();
 
         // Rebuilding the list would otherwise jump it back to the thumb end on every toggle
-        const scrollTop = this.resultListEl.scrollTop;
+        const scrollTop = queryChanged ? 0 : this.resultListEl.scrollTop;
+        const count = Math.max(ROW_BATCH, this.session.active + 1, queryChanged ? 0 : this.builtCount);
         this.resultListEl.empty();
+        this.builtCount = 0;
         // Recents sit just past the pinned current note, or nearest the thumb without one
-        const showRecents = query.trim() === '';
-        const pinned = rows[0]?.kind === 'current';
-        if (showRecents && !pinned) this.renderRecents();
-        rows.forEach((row, index) => {
+        if (query.trim() === '' && this.rows[0]?.kind !== 'current') this.renderRecents();
+        this.buildRows(count);
+
+        // The list is anchored to the thumb end; a new query starts there
+        this.resultListEl.scrollTop = scrollTop;
+        this.renderedQuery = query;
+    }
+
+    /** Append rows up to `count` past the ones already built. */
+    private buildRows(count: number): void {
+        const query = this.session.getQuery();
+        const showEmpty = query.trim() !== '' && !this.rows.some((row) => row.kind === 'result');
+        const showRecents = query.trim() === '' && this.rows[0]?.kind === 'current';
+        const end = Math.min(count, this.rows.length);
+        for (let index = this.builtCount; index < end; index++) {
+            const row = this.rows[index];
             if (row.kind === 'create' && showEmpty) {
                 this.resultListEl.createDiv({ cls: 'mobile-search-empty', text: 'No notes match' });
             }
-            this.renderRow(row, index, terms);
-            if (showRecents && pinned && index === 0) this.renderRecents();
-        });
+            this.renderRow(row, index, this.terms);
+            if (showRecents && index === 0) this.renderRecents();
+        }
+        this.builtCount = end;
+    }
 
-        // The list is anchored to the thumb end; a new query starts there
-        this.resultListEl.scrollTop = query !== this.renderedQuery ? 0 : scrollTop;
-        this.renderedQuery = query;
+    /** Build the next batch once the far end is within a screen. The list is reversed, so scrollTop runs negative. */
+    private buildMoreNearEnd(): void {
+        if (this.builtCount >= this.rows.length) return;
+        const { scrollHeight, clientHeight, scrollTop } = this.resultListEl;
+        if (scrollHeight - clientHeight + scrollTop > clientHeight) return;
+        this.buildRows(this.builtCount + ROW_BATCH);
     }
 
     /** "3 matches" for a query, "120 notes" for the full list. */

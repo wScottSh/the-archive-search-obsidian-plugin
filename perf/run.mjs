@@ -135,7 +135,7 @@ async function oneRun(browser) {
             rowsInDom: type.state.rowsInDom,
             matchCount: type.state.matchCount,
         },
-        scroll: frameStats(scroll.recording),
+        scroll: { ...frameStats(scroll.recording), rowsInDom: scroll.state.rowsInDom },
         typedRowsAtEnd,
         allRowsAtEnd,
     };
