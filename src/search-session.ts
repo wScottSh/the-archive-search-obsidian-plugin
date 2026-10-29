@@ -342,7 +342,8 @@ export class SearchSession {
     private promoteExactTitle(): void {
         const title = this.query.trim();
         if (!title || this.query.startsWith('"')) return;
-        const isExact = (r: SearchResult) => r.filename.toLowerCase() === title.toLowerCase();
+        const lowerTitle = title.toLowerCase();
+        const isExact = (r: SearchResult) => r.filename.toLowerCase() === lowerTitle;
         if (!this.results.some(isExact)) return;
 
         this.results = this.engine.search(`"${title}"`);
