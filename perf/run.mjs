@@ -147,6 +147,7 @@ function keystrokeStats(recording, state, expectedCount, finalQuery) {
         worstKeyToPaintMs: Math.max(...strokes.map((s) => s.paintedAt - s.sentAt)),
         handlerMs: strokes.map((s) => s.handlerEnd - s.handlerStart),
         totalHandlerMs: strokes.reduce((sum, s) => sum + s.handlerEnd - s.handlerStart, 0),
+        totalSearchMs: strokes.reduce((sum, s) => sum + s.searchMs, 0),
         queuedMs: strokes.map((s) => s.handlerStart - s.sentAt),
         sentGapsMs: strokes.slice(1).map((s, i) => s.sentAt - strokes[i].sentAt),
         lastKeyToFinalPaintMs: last.paintedAt - last.sentAt,

@@ -85,6 +85,14 @@ const app = Object.assign(new App(), {
     workspace: { getMostRecentLeaf: () => ({ view }) },
 });
 const engine = new SearchEngine(app as any, settings);
+const search = engine.search.bind(engine);
+engine.search = (query: string) => {
+    const start = performance.now();
+    const results = search(query);
+    const stroke = keystrokes[keystrokes.length - 1];
+    if (stroke && !stroke.handlerEnd) stroke.searchMs += performance.now() - start;
+    return results;
+};
 const plugin = { settings, searchEngine: engine, mobileSession: undefined } as unknown as TheArchiveSearchPlugin;
 
 const openTimes: number[] = [];
@@ -95,6 +103,8 @@ interface Keystroke {
     sentAt: number;
     handlerStart: number;
     handlerEnd: number;
+    /** Time inside engine.search during the handlers. */
+    searchMs: number;
     paintedAt: number;
     value: string;
 }
@@ -119,6 +129,7 @@ document.addEventListener('input', (event) => {
         sentAt: typedAt,
         handlerStart: performance.now(),
         handlerEnd: 0,
+        searchMs: 0,
         paintedAt: 0,
         value: (event.target as HTMLInputElement).value,
     };

@@ -40,10 +40,12 @@ const METRICS = [
     ['fastType', 'lastKeyToFinalPaintMs'],
     ['fastType', 'worstKeyToPaintMs'],
     ['fastType', 'totalHandlerMs'],
+    ['fastType', 'totalSearchMs'],
     ['fastType', 'longTaskTotalMs'],
     ['fastDelete', 'lastKeyToFinalPaintMs'],
     ['fastDelete', 'worstKeyToPaintMs'],
     ['fastDelete', 'totalHandlerMs'],
+    ['fastDelete', 'totalSearchMs'],
     ['fastDelete', 'longTaskTotalMs'],
     ['type', 'worstKeyToPaintMs'],
     ['open', 'tapToPaintMs'],
@@ -81,7 +83,7 @@ const summary = {};
 console.log(`\n${''.padEnd(34)}${`base ${baseCommit}`.padStart(22)}${'head (working tree)'.padStart(22)}`);
 for (const [scenario, metric] of METRICS) {
     const key = `${scenario}.${metric}`;
-    summary[key] = Object.fromEntries(Object.entries(sides).map(([side, { runs }]) => [side, summarize(runs.map((run) => run[scenario][metric]))]));
+    summary[key] = Object.fromEntries(Object.entries(sides).map(([side, { runs }]) => [side, summarize(runs.map((run) => run[scenario][metric] ?? NaN))]));
     console.log(`${key.padEnd(34)}${show(summary[key].base).padStart(22)}${show(summary[key].head).padStart(22)}`);
 }
 
