@@ -34,3 +34,6 @@ data.json
 # Editor / OS junk
 *.swp
 *~
+
+# perf/ab.mjs scratch result
+perf/results/_ab.json

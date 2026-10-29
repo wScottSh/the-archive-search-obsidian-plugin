@@ -88,3 +88,24 @@ export function makeVault(seed = 1): Vault {
     }
     return { files, contents, totalChars };
 }
+
+/** A note read from disk by `run.mjs --vault`. */
+export interface DiskNote {
+    path: string;
+    content: string;
+    ctime: number;
+    mtime: number;
+}
+
+export function vaultFromNotes(notes: DiskNote[]): Vault {
+    const files: TFile[] = [];
+    const contents = new Map<TFile, string>();
+    let totalChars = 0;
+    for (const note of notes) {
+        const file = new TFile(note.path, note.ctime, note.mtime, note.content.length);
+        files.push(file);
+        contents.set(file, note.content);
+        totalChars += note.content.length;
+    }
+    return { files, contents, totalChars };
+}

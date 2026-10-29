@@ -72,6 +72,8 @@ export class MobileSearchModal extends Modal {
     private rows: Row[] = [];
     private terms: string[] = [];
     private builtCount = 0;
+    /** One parsed copy of each row icon; setIcon parses the SVG afresh on every call. */
+    private icons = new Map<string, Node[]>();
 
     constructor(app: App, plugin: TheArchiveSearchPlugin, query?: string) {
         super(app);
@@ -352,13 +354,13 @@ export class MobileSearchModal extends Modal {
         }
 
         if (row.kind === 'create') {
-            setIcon(rowEl.createSpan({ cls: 'mobile-search-row-icon' }), 'plus');
+            this.setRowIcon(rowEl.createSpan({ cls: 'mobile-search-row-icon' }), 'plus');
             rowEl.createSpan({ cls: 'mobile-search-row-title', text: `Create new note: "${row.title}"` });
             return;
         }
 
         if (row.kind === 'current') {
-            setIcon(rowEl.createSpan({ cls: 'mobile-search-row-icon' }), 'file-text');
+            this.setRowIcon(rowEl.createSpan({ cls: 'mobile-search-row-icon' }), 'file-text');
         }
         const titleEl = rowEl.createSpan({ cls: 'mobile-search-row-title' });
         if (row.kind === 'current') {
@@ -377,10 +379,21 @@ export class MobileSearchModal extends Modal {
         }
     }
 
+    private setRowIcon(el: HTMLElement, icon: string): void {
+        let nodes = this.icons.get(icon);
+        if (!nodes) {
+            const templateEl = document.createElement('span');
+            setIcon(templateEl, icon);
+            nodes = Array.from(templateEl.childNodes);
+            this.icons.set(icon, nodes);
+        }
+        for (const node of nodes) el.appendChild(node.cloneNode(true));
+    }
+
     /** Eye on a file row: peek at the note. Does not select the row or touch the keyboard. */
     private createEyeButton(rowEl: HTMLElement, index: number, terms: string[]): void {
         const eyeEl = rowEl.createEl('button', { cls: 'mobile-search-eye-btn' });
-        setIcon(eyeEl, 'eye');
+        this.setRowIcon(eyeEl, 'eye');
         eyeEl.setAttribute('aria-label', 'Quick Look');
         keepFocus(eyeEl);
         // Keep the row's long-press from starting under the eye

@@ -78,10 +78,66 @@ export function highlightPieces(text: string, terms: string[]): SnippetPiece[] {
 // ─── Search Result ───────────────────────────────────────────────
 
 export interface SearchResult {
-    file: TFile;
-    filename: string;         // original-case basename
-    matchInFilename: boolean; // true if any search term matched in the filename
-    snippet?: SnippetPiece[]; // original-case pieces, hits flagged
+    readonly file: TFile;
+    readonly filename: string;         // original-case basename
+    readonly matchInFilename: boolean; // true if any search term matched in the filename
+    readonly snippet?: SnippetPiece[]; // original-case pieces, hits flagged
+}
+
+/**
+ * A query match. Lists render a few dozen rows of thousands of matches, so
+ * the snippet is built on first read rather than for every match.
+ */
+class Match implements SearchResult {
+    readonly file: TFile;
+    readonly filename: string;
+    private pieces: SnippetPiece[] | undefined | null = null;
+
+    constructor(private entry: IndexEntry, private terms: string[], readonly matchInFilename: boolean) {
+        this.file = entry.file;
+        this.filename = entry.rawFilename;
+    }
+
+    get snippet(): SnippetPiece[] | undefined {
+        if (this.pieces === null) this.pieces = extractSnippet(this.entry, this.terms);
+        return this.pieces;
+    }
+}
+
+/**
+ * Build an original-case snippet around the first term match, split into
+ * pieces so views can mark hits. Matching runs on the case-folded index,
+ * whose offsets line up with the original text.
+ */
+export function extractSnippet(entry: IndexEntry, terms: string[]): SnippetPiece[] | undefined {
+    const content = entry.content;
+    let firstPos = -1;
+    let matchLen = 0;
+    for (const term of terms) {
+        const t = foldCase(term);
+        if (!t) continue;
+        const pos = content.indexOf(t);
+        if (pos !== -1 && (firstPos === -1 || pos < firstPos)) {
+            firstPos = pos;
+            matchLen = t.length;
+        }
+    }
+    if (firstPos === -1) return undefined;
+    const windowSize = 100;
+    const half = Math.floor(windowSize / 2);
+    const start = Math.max(0, firstPos - half);
+    const end = Math.min(content.length, firstPos + matchLen + half);
+    const inner = entry.rawContent.substring(start, end).trim();
+    if (!inner) return undefined;
+
+    const pieces = highlightPieces(inner, terms);
+    if (start > 0) pieces.unshift({ text: '... ', hit: false });
+    if (end < content.length) pieces.push({ text: '...', hit: false });
+    return pieces;
+}
+
+function isNameOrder(order: SortOrder): boolean {
+    return order === 'a-z' || order === 'z-a';
 }
 
 // ─── Search Engine ───────────────────────────────────────────────
@@ -90,6 +146,8 @@ export class SearchEngine {
     private app: App;
     private settings: ArchiveSearchSettings;
     private index: Map<string, IndexEntry> = new Map();
+    /** The index in name order, kept until the index or the name order changes. */
+    private nameSorted: { order: SortOrder; entries: IndexEntry[] } | null = null;
     private _ready = false;
     private removalListeners = new Set<(deleted: TAbstractFile | null) => void>();
 
@@ -113,6 +171,7 @@ export class SearchEngine {
      */
     async buildIndex(): Promise<void> {
         this.index.clear();
+        this.nameSorted = null;
         const files = this.app.vault.getMarkdownFiles();
         for (const file of files) {
             if (!this.isExcluded(file)) {
@@ -195,7 +254,7 @@ export class SearchEngine {
             async (file: TAbstractFile) => {
                 if (file instanceof TFile && file.extension === 'md') {
                     if (this.isExcluded(file)) {
-                        this.index.delete(file.path);
+                        this.removeEntry(file.path);
                     } else {
                         await this.indexFile(file);
                     }
@@ -215,11 +274,11 @@ export class SearchEngine {
             },
             onModify: debouncedModify,
             onDelete: (file: TAbstractFile) => {
-                this.index.delete(file.path);
+                this.removeEntry(file.path);
                 this.noteRemoved(file);
             },
             onRename: async (file: TAbstractFile, oldPath: string) => {
-                this.index.delete(oldPath);
+                this.removeEntry(oldPath);
                 if (file instanceof TFile && file.extension === 'md') {
                     if (!this.isExcluded(file)) {
                         await this.indexFile(file);
@@ -230,6 +289,11 @@ export class SearchEngine {
         };
     }
 
+    private removeEntry(path: string): void {
+        this.nameSorted = null;
+        this.index.delete(path);
+    }
+
     /**
      * Index a single file: read its content and store in the map.
      */
@@ -237,6 +301,7 @@ export class SearchEngine {
         try {
             const content = await this.app.vault.cachedRead(file);
             const basename = file.basename;
+            this.nameSorted = null;
             this.index.set(file.path, {
                 file,
                 filename: foldCase(basename),
@@ -263,18 +328,14 @@ export class SearchEngine {
         const queryLower = foldCase(query);
         const positiveTerms = extractSearchTerms(ast);
 
-        for (const entry of this.index.values()) {
+        const byName = isNameOrder(this.settings.sortOrder);
+        for (const entry of byName ? this.entriesByName() : this.index.values()) {
             if (this.evaluate(ast, entry)) {
-                results.push({
-                    file: entry.file,
-                    filename: entry.rawFilename,
-                    matchInFilename: entry.filename.includes(queryLower),
-                    snippet: this.extractSnippet(entry, positiveTerms),
-                });
+                results.push(new Match(entry, positiveTerms, entry.filename.includes(queryLower)));
             }
         }
 
-        this.sortResults(results);
+        if (!byName) this.sortResults(results);
         return results;
     }
 
@@ -283,29 +344,39 @@ export class SearchEngine {
      */
     private allFilesSorted(): SearchResult[] {
         const results: SearchResult[] = [];
-        for (const entry of this.index.values()) {
+        const byName = isNameOrder(this.settings.sortOrder);
+        for (const entry of byName ? this.entriesByName() : this.index.values()) {
             results.push({
                 file: entry.file,
                 filename: entry.rawFilename,
                 matchInFilename: false,
             });
         }
-        this.sortResults(results);
+        if (!byName) this.sortResults(results);
         return results;
+    }
+
+    /**
+     * Index entries in the name sort order, so matches come out sorted.
+     * Sorting by date stays per search: a note's dates change before its
+     * reindex lands.
+     */
+    private entriesByName(): IndexEntry[] {
+        const order = this.settings.sortOrder;
+        if (this.nameSorted?.order !== order) {
+            const entries = [...this.index.values()];
+            if (order === 'a-z') entries.sort((a, b) => a.rawFilename.localeCompare(b.rawFilename));
+            else entries.sort((a, b) => b.rawFilename.localeCompare(a.rawFilename));
+            this.nameSorted = { order, entries };
+        }
+        return this.nameSorted.entries;
     }
 
     /**
      * Sort results based on the current sort order setting.
      */
     private sortResults(results: SearchResult[]): void {
-        const order = this.settings.sortOrder;
-        switch (order) {
-            case 'a-z':
-                results.sort((a, b) => a.filename.localeCompare(b.filename));
-                break;
-            case 'z-a':
-                results.sort((a, b) => b.filename.localeCompare(a.filename));
-                break;
+        switch (this.settings.sortOrder) {
             case 'created-new':
                 results.sort((a, b) => b.file.stat.ctime - a.file.stat.ctime);
                 break;
@@ -344,39 +415,5 @@ export class SearchEngine {
             case 'NOT':
                 return !this.evaluate(node.operand, entry);
         }
-    }
-
-    // ─── Snippet Production ──────────────────────────────────────────
-
-    /**
-     * Build an original-case snippet around the first term match, split into
-     * pieces so views can mark hits. Matching runs on the case-folded index,
-     * whose offsets line up with the original text.
-     */
-    private extractSnippet(entry: IndexEntry, terms: string[]): SnippetPiece[] | undefined {
-        const content = entry.content;
-        let firstPos = -1;
-        let matchLen = 0;
-        for (const term of terms) {
-            const t = foldCase(term);
-            if (!t) continue;
-            const pos = content.indexOf(t);
-            if (pos !== -1 && (firstPos === -1 || pos < firstPos)) {
-                firstPos = pos;
-                matchLen = t.length;
-            }
-        }
-        if (firstPos === -1) return undefined;
-        const windowSize = 100;
-        const half = Math.floor(windowSize / 2);
-        const start = Math.max(0, firstPos - half);
-        const end = Math.min(content.length, firstPos + matchLen + half);
-        const inner = entry.rawContent.substring(start, end).trim();
-        if (!inner) return undefined;
-
-        const pieces = highlightPieces(inner, terms);
-        if (start > 0) pieces.unshift({ text: '... ', hit: false });
-        if (end < content.length) pieces.push({ text: '...', hit: false });
-        return pieces;
     }
 }

@@ -1,0 +1,1726 @@
+{
+  "meta": {
+    "date": "2026-10-29T22:43:54.529Z",
+    "base": "f45f325",
+    "head": "c0ab68c",
+    "headDirty": false,
+    "rounds": 5,
+    "cpuThrottle": 4,
+    "vault": "/home/wscottsh/repos/scott-brain-md",
+    "appCss": null,
+    "host": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+    "loadAverage": [
+      2.54,
+      3.65,
+      3.55
+    ]
+  },
+  "summary": {
+    "fastType.lastKeyToFinalPaintMs": {
+      "base": {
+        "median": 25.700000047683716,
+        "min": 16.59999990463257,
+        "max": 34.09999990463257
+      },
+      "head": {
+        "median": 21.5,
+        "min": 15.400000095367432,
+        "max": 25.5
+      }
+    },
+    "fastType.worstKeyToPaintMs": {
+      "base": {
+        "median": 49.60000014305115,
+        "min": 42.10000014305115,
+        "max": 55.59999990463257
+      },
+      "head": {
+        "median": 37,
+        "min": 30.100000143051147,
+        "max": 50.10000014305115
+      }
+    },
+    "fastType.totalHandlerMs": {
+      "base": {
+        "median": 112.10000014305115,
+        "min": 92.60000014305115,
+        "max": 120.70000004768372
+      },
+      "head": {
+        "median": 45.799999713897705,
+        "min": 41,
+        "max": 56.39999985694885
+      }
+    },
+    "fastType.totalSearchMs": {
+      "base": {
+        "median": 35.40000033378601,
+        "min": 30.100000143051147,
+        "max": 37.60000014305115
+      },
+      "head": {
+        "median": 17.300000190734863,
+        "min": 14,
+        "max": 19.300000190734863
+      }
+    },
+    "fastType.longTaskTotalMs": {
+      "base": {
+        "median": 0,
+        "min": 0,
+        "max": 52
+      },
+      "head": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "fastDelete.lastKeyToFinalPaintMs": {
+      "base": {
+        "median": 31,
+        "min": 25.09999990463257,
+        "max": 31.700000047683716
+      },
+      "head": {
+        "median": 25.09999990463257,
+        "min": 18.600000143051147,
+        "max": 29.200000047683716
+      }
+    },
+    "fastDelete.worstKeyToPaintMs": {
+      "base": {
+        "median": 48.59999990463257,
+        "min": 40.60000014305115,
+        "max": 51.10000014305115
+      },
+      "head": {
+        "median": 34.60000014305115,
+        "min": 29,
+        "max": 40.700000047683716
+      }
+    },
+    "fastDelete.totalHandlerMs": {
+      "base": {
+        "median": 113.60000014305115,
+        "min": 97.90000009536743,
+        "max": 117.5
+      },
+      "head": {
+        "median": 44.99999976158142,
+        "min": 38.200000047683716,
+        "max": 54.60000014305115
+      }
+    },
+    "fastDelete.totalSearchMs": {
+      "base": {
+        "median": 34.39999985694885,
+        "min": 29.100000143051147,
+        "max": 36
+      },
+      "head": {
+        "median": 12.700000047683716,
+        "min": 11,
+        "max": 16.5
+      }
+    },
+    "fastDelete.longTaskTotalMs": {
+      "base": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "head": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "type.worstKeyToPaintMs": {
+      "base": {
+        "median": 71.70000004768372,
+        "min": 60.60000014305115,
+        "max": 76
+      },
+      "head": {
+        "median": 54.700000047683716,
+        "min": 45.39999985694885,
+        "max": 77.5
+      }
+    },
+    "open.tapToPaintMs": {
+      "base": {
+        "median": 68.09999990463257,
+        "min": 65.40000009536743,
+        "max": 80
+      },
+      "head": {
+        "median": 72,
+        "min": 69.29999995231628,
+        "max": 106.60000014305115
+      }
+    },
+    "bench.search_b": {
+      "base": {
+        "median": 3.799999952316284,
+        "min": 3.6999998092651367,
+        "max": 6.199999809265137
+      },
+      "head": {
+        "median": 0.6000001430511475,
+        "min": 0.5999999046325684,
+        "max": 0.7000000476837158
+      }
+    },
+    "bench.search_blah": {
+      "base": {
+        "median": 3.8999998569488525,
+        "min": 3.799999952316284,
+        "max": 4.099999904632568
+      },
+      "head": {
+        "median": 3.799999952316284,
+        "min": 3.799999952316284,
+        "max": 4
+      }
+    },
+    "bench.search_e": {
+      "base": {
+        "median": 4.900000095367432,
+        "min": 4.700000047683716,
+        "max": 5.099999904632568
+      },
+      "head": {
+        "median": 0.10000014305114746,
+        "min": 0.10000014305114746,
+        "max": 0.2999999523162842
+      }
+    }
+  },
+  "runs": {
+    "base": [
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "indexMs": 95.60000014305115,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.2,
+          "tapToPaintMs": 68.09999990463257,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8
+        },
+        "type": {
+          "longTaskCount": 1,
+          "longTaskTotalMs": 59,
+          "worstTaskMs": 59,
+          "droppedFrames": 6,
+          "worstFrameMs": 50,
+          "keyToPaintMs": [
+            76,
+            58.799999952316284,
+            58.90000009536743,
+            52
+          ],
+          "worstKeyToPaintMs": 76,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 2,
+          "worstFrameMs": 33.3,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            49.5,
+            49.60000014305115,
+            46.19999980926514,
+            25.700000047683716
+          ],
+          "worstKeyToPaintMs": 49.60000014305115,
+          "handlerMs": [
+            35.200000047683716,
+            34.90000009536743,
+            31.800000190734863,
+            16.40000009536743
+          ],
+          "totalHandlerMs": 118.30000042915344,
+          "totalSearchMs": 37.60000014305115,
+          "queuedMs": [
+            3.0999999046325684,
+            2.9000000953674316,
+            2.6999998092651367,
+            1.7000000476837158
+          ],
+          "sentGapsMs": [
+            70.69999980926514,
+            69.80000019073486,
+            69.39999985694885
+          ],
+          "lastKeyToFinalPaintMs": 25.700000047683716,
+          "firstKeyToFinalPaintMs": 235.59999990463257,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 3,
+          "worstFrameMs": 33.3,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            44.700000047683716,
+            47.5,
+            47.90000009536743,
+            29.5
+          ],
+          "worstKeyToPaintMs": 47.90000009536743,
+          "handlerMs": [
+            29.300000190734863,
+            33.5,
+            35.09999990463257,
+            15.700000047683716
+          ],
+          "totalHandlerMs": 113.60000014305115,
+          "totalSearchMs": 34.799999952316284,
+          "queuedMs": [
+            3.0999999046325684,
+            1.9000000953674316,
+            2.700000047683716,
+            2.799999952316284
+          ],
+          "sentGapsMs": [
+            70.5,
+            69.79999995231628,
+            70.20000004768372
+          ],
+          "lastKeyToFinalPaintMs": 29.5,
+          "firstKeyToFinalPaintMs": 240,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 3.700000047683716,
+          "search_bl": 3.8999998569488525,
+          "search_bla": 4.199999809265137,
+          "search_blah": 3.8999998569488525,
+          "search_e": 4.900000095367432
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      },
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "indexMs": 104,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.3,
+          "tapToPaintMs": 69.10000014305115,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7
+        },
+        "type": {
+          "longTaskCount": 1,
+          "longTaskTotalMs": 58,
+          "worstTaskMs": 58,
+          "droppedFrames": 6,
+          "worstFrameMs": 50,
+          "keyToPaintMs": [
+            71.70000004768372,
+            57.700000047683716,
+            58.5,
+            46.39999985694885
+          ],
+          "worstKeyToPaintMs": 71.70000004768372,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 2,
+          "worstFrameMs": 33.4,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            50,
+            41.799999952316284,
+            32.200000047683716,
+            27.799999952316284
+          ],
+          "worstKeyToPaintMs": 50,
+          "handlerMs": [
+            33.40000009536743,
+            30.899999856948853,
+            22.5,
+            18.5
+          ],
+          "totalHandlerMs": 105.29999995231628,
+          "totalSearchMs": 35.40000033378601,
+          "queuedMs": [
+            4.099999904632568,
+            2,
+            1,
+            2.9000000953674316
+          ],
+          "sentGapsMs": [
+            70.40000009536743,
+            70.39999985694885,
+            71.20000004768372
+          ],
+          "lastKeyToFinalPaintMs": 27.799999952316284,
+          "firstKeyToFinalPaintMs": 239.79999995231628,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 3,
+          "worstFrameMs": 33.4,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            42.200000047683716,
+            51.10000014305115,
+            47.5,
+            31.5
+          ],
+          "worstKeyToPaintMs": 51.10000014305115,
+          "handlerMs": [
+            29.299999952316284,
+            36.299999952316284,
+            34.5,
+            17.40000009536743
+          ],
+          "totalHandlerMs": 117.5,
+          "totalSearchMs": 36,
+          "queuedMs": [
+            1.9000000953674316,
+            2.1000001430511475,
+            1.9000000953674316,
+            3.799999952316284
+          ],
+          "sentGapsMs": [
+            71.09999990463257,
+            70.5,
+            68.60000014305115
+          ],
+          "lastKeyToFinalPaintMs": 31.5,
+          "firstKeyToFinalPaintMs": 241.70000004768372,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 3.799999952316284,
+          "search_bl": 4.099999904632568,
+          "search_bla": 4.199999809265137,
+          "search_blah": 4.099999904632568,
+          "search_e": 5
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      },
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7,
+          "indexMs": 112.5,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 1,
+          "longTaskTotalMs": 58,
+          "worstTaskMs": 58,
+          "droppedFrames": 2,
+          "worstFrameMs": 50,
+          "tapToPaintMs": 80,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7
+        },
+        "type": {
+          "longTaskCount": 1,
+          "longTaskTotalMs": 57,
+          "worstTaskMs": 57,
+          "droppedFrames": 6,
+          "worstFrameMs": 50,
+          "keyToPaintMs": [
+            71.79999995231628,
+            54.5,
+            44.5,
+            48.40000009536743
+          ],
+          "worstKeyToPaintMs": 71.79999995231628,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 1,
+          "longTaskTotalMs": 52,
+          "worstTaskMs": 52,
+          "droppedFrames": 4,
+          "worstFrameMs": 50.1,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            55.59999990463257,
+            53.09999990463257,
+            45,
+            34.09999990463257
+          ],
+          "worstKeyToPaintMs": 55.59999990463257,
+          "handlerMs": [
+            33.89999985694885,
+            36.90000009536743,
+            29.299999952316284,
+            20.600000143051147
+          ],
+          "totalHandlerMs": 120.70000004768372,
+          "totalSearchMs": 31.600000143051147,
+          "queuedMs": [
+            2.700000047683716,
+            3.5,
+            2.5,
+            3.799999952316284
+          ],
+          "sentGapsMs": [
+            70,
+            70.90000009536743,
+            71.09999990463257
+          ],
+          "lastKeyToFinalPaintMs": 34.09999990463257,
+          "firstKeyToFinalPaintMs": 246.09999990463257,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 2,
+          "worstFrameMs": 33.3,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            45.799999952316284,
+            50.5,
+            46.60000014305115,
+            31.700000047683716
+          ],
+          "worstKeyToPaintMs": 50.5,
+          "handlerMs": [
+            30.399999856948853,
+            35.10000014305115,
+            32.40000009536743,
+            16.800000190734863
+          ],
+          "totalHandlerMs": 114.7000002861023,
+          "totalSearchMs": 31.700000047683716,
+          "queuedMs": [
+            2.299999952316284,
+            2.799999952316284,
+            2.200000047683716,
+            3
+          ],
+          "sentGapsMs": [
+            71.09999990463257,
+            70.29999995231628,
+            69.29999995231628
+          ],
+          "lastKeyToFinalPaintMs": 31.700000047683716,
+          "firstKeyToFinalPaintMs": 242.39999985694885,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 6.199999809265137,
+          "search_bl": 4.900000095367432,
+          "search_bla": 3.799999952316284,
+          "search_blah": 3.799999952316284,
+          "search_e": 5.099999904632568
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      },
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7,
+          "indexMs": 92.79999995231628,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.4,
+          "tapToPaintMs": 65.5,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8
+        },
+        "type": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 3,
+          "worstFrameMs": 33.4,
+          "keyToPaintMs": [
+            60.60000014305115,
+            41.10000014305115,
+            46.799999952316284,
+            42
+          ],
+          "worstKeyToPaintMs": 60.60000014305115,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            42.10000014305115,
+            40.30000019073486,
+            33.700000047683716,
+            16.59999990463257
+          ],
+          "worstKeyToPaintMs": 42.10000014305115,
+          "handlerMs": [
+            28.5,
+            30,
+            23.40000009536743,
+            10.700000047683716
+          ],
+          "totalHandlerMs": 92.60000014305115,
+          "totalSearchMs": 30.100000143051147,
+          "queuedMs": [
+            2.299999952316284,
+            1.6000001430511475,
+            1.2999999523162842,
+            1.3999998569488525
+          ],
+          "sentGapsMs": [
+            70.29999995231628,
+            69.60000014305115,
+            69.70000004768372
+          ],
+          "lastKeyToFinalPaintMs": 16.59999990463257,
+          "firstKeyToFinalPaintMs": 226.20000004768372,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.4,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            38.60000014305115,
+            40.60000014305115,
+            40.200000047683716,
+            25.09999990463257
+          ],
+          "worstKeyToPaintMs": 40.60000014305115,
+          "handlerMs": [
+            26.800000190734863,
+            28.899999856948853,
+            28.799999952316284,
+            13.400000095367432
+          ],
+          "totalHandlerMs": 97.90000009536743,
+          "totalSearchMs": 29.100000143051147,
+          "queuedMs": [
+            2.5,
+            1.8000001907348633,
+            1.5999999046325684,
+            2.3999998569488525
+          ],
+          "sentGapsMs": [
+            71,
+            70.60000014305115,
+            69
+          ],
+          "lastKeyToFinalPaintMs": 25.09999990463257,
+          "firstKeyToFinalPaintMs": 235.70000004768372,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 3.6999998092651367,
+          "search_bl": 3.9000000953674316,
+          "search_bla": 3.9000000953674316,
+          "search_blah": 3.8999998569488525,
+          "search_e": 4.700000047683716
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      },
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7,
+          "indexMs": 112.5,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.4,
+          "tapToPaintMs": 65.40000009536743,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7
+        },
+        "type": {
+          "longTaskCount": 1,
+          "longTaskTotalMs": 56,
+          "worstTaskMs": 56,
+          "droppedFrames": 5,
+          "worstFrameMs": 50,
+          "keyToPaintMs": [
+            70.5,
+            48.89999985694885,
+            47.60000014305115,
+            42.799999952316284
+          ],
+          "worstKeyToPaintMs": 70.5,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 3,
+          "worstFrameMs": 33.4,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            48.200000047683716,
+            47.19999980926514,
+            43.59999990463257,
+            25.199999809265137
+          ],
+          "worstKeyToPaintMs": 48.200000047683716,
+          "handlerMs": [
+            32.700000047683716,
+            33.799999952316284,
+            30.100000143051147,
+            15.5
+          ],
+          "totalHandlerMs": 112.10000014305115,
+          "totalSearchMs": 37.60000014305115,
+          "queuedMs": [
+            4.200000047683716,
+            3.0999999046325684,
+            2.8999998569488525,
+            2.1999998092651367
+          ],
+          "sentGapsMs": [
+            69.60000014305115,
+            70.79999995231628,
+            68.70000004768372
+          ],
+          "lastKeyToFinalPaintMs": 25.199999809265137,
+          "firstKeyToFinalPaintMs": 234.29999995231628,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 2,
+          "worstFrameMs": 33.3,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            44.299999952316284,
+            48.59999990463257,
+            48.10000014305115,
+            31
+          ],
+          "worstKeyToPaintMs": 48.59999990463257,
+          "handlerMs": [
+            28.09999990463257,
+            34,
+            33.89999985694885,
+            16.59999990463257
+          ],
+          "totalHandlerMs": 112.59999966621399,
+          "totalSearchMs": 34.39999985694885,
+          "queuedMs": [
+            4.200000047683716,
+            1.7999999523162842,
+            1.9000000953674316,
+            3.1000001430511475
+          ],
+          "sentGapsMs": [
+            69.90000009536743,
+            70.59999990463257,
+            70.5
+          ],
+          "lastKeyToFinalPaintMs": 31,
+          "firstKeyToFinalPaintMs": 242,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 3.799999952316284,
+          "search_bl": 4,
+          "search_bla": 3.9000000953674316,
+          "search_blah": 3.8999998569488525,
+          "search_e": 4.700000047683716
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      }
+    ],
+    "head": [
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7,
+          "indexMs": 91.5,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.4,
+          "tapToPaintMs": 69.29999995231628,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7
+        },
+        "type": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 2,
+          "worstFrameMs": 33.4,
+          "keyToPaintMs": [
+            54.700000047683716,
+            45,
+            44.5,
+            50.59999990463257
+          ],
+          "worstKeyToPaintMs": 54.700000047683716,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            32.200000047683716,
+            29.40000009536743,
+            27.700000047683716,
+            15.400000095367432
+          ],
+          "worstKeyToPaintMs": 32.200000047683716,
+          "handlerMs": [
+            10.399999856948853,
+            11.700000047683716,
+            11.5,
+            7.400000095367432
+          ],
+          "totalHandlerMs": 41,
+          "totalSearchMs": 14,
+          "queuedMs": [
+            2.8000001907348633,
+            2.700000047683716,
+            2.1000001430511475,
+            1.7000000476837158
+          ],
+          "sentGapsMs": [
+            70.20000004768372,
+            70.79999995231628,
+            70.20000004768372
+          ],
+          "lastKeyToFinalPaintMs": 15.400000095367432,
+          "firstKeyToFinalPaintMs": 226.60000014305115,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            32.40000009536743,
+            34.60000014305115,
+            30.90000009536743,
+            24.5
+          ],
+          "worstKeyToPaintMs": 34.60000014305115,
+          "handlerMs": [
+            13.699999809265137,
+            13.899999856948853,
+            10.400000095367432,
+            7
+          ],
+          "totalHandlerMs": 44.99999976158142,
+          "totalSearchMs": 12.700000047683716,
+          "queuedMs": [
+            3.6000001430511475,
+            3.9000000953674316,
+            3.299999952316284,
+            2.6999998092651367
+          ],
+          "sentGapsMs": [
+            71.5,
+            69,
+            69.60000014305115
+          ],
+          "lastKeyToFinalPaintMs": 24.5,
+          "firstKeyToFinalPaintMs": 234.60000014305115,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 0.7000000476837158,
+          "search_bl": 1.1000001430511475,
+          "search_bla": 3.3999998569488525,
+          "search_blah": 3.799999952316284,
+          "search_e": 0.10000014305114746
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      },
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7,
+          "indexMs": 108,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.4,
+          "tapToPaintMs": 72,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8
+        },
+        "type": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 2,
+          "worstFrameMs": 33.3,
+          "keyToPaintMs": [
+            61.39999985694885,
+            38.19999980926514,
+            44.5,
+            45.30000019073486
+          ],
+          "worstKeyToPaintMs": 61.39999985694885,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.2,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            33.799999952316284,
+            35,
+            37.19999980926514,
+            21.5
+          ],
+          "worstKeyToPaintMs": 37.19999980926514,
+          "handlerMs": [
+            13.799999952316284,
+            14.700000047683716,
+            15.5,
+            10.299999952316284
+          ],
+          "totalHandlerMs": 54.299999952316284,
+          "totalSearchMs": 19.300000190734863,
+          "queuedMs": [
+            3.5,
+            2.8999998569488525,
+            3.299999952316284,
+            2.700000047683716
+          ],
+          "sentGapsMs": [
+            70.70000004768372,
+            69.5,
+            68.89999985694885
+          ],
+          "lastKeyToFinalPaintMs": 21.5,
+          "firstKeyToFinalPaintMs": 230.59999990463257,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            33.5,
+            35,
+            29.90000009536743,
+            25.09999990463257
+          ],
+          "worstKeyToPaintMs": 35,
+          "handlerMs": [
+            14.900000095367432,
+            15.099999904632568,
+            12.700000047683716,
+            8.700000047683716
+          ],
+          "totalHandlerMs": 51.40000009536743,
+          "totalSearchMs": 16.5,
+          "queuedMs": [
+            3.799999952316284,
+            3,
+            1.4000000953674316,
+            3.6999998092651367
+          ],
+          "sentGapsMs": [
+            69,
+            70.59999990463257,
+            71.10000014305115
+          ],
+          "lastKeyToFinalPaintMs": 25.09999990463257,
+          "firstKeyToFinalPaintMs": 235.79999995231628,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 0.6000001430511475,
+          "search_bl": 1.2000000476837158,
+          "search_bla": 3.5,
+          "search_blah": 4,
+          "search_e": 0.10000014305114746
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      },
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "indexMs": 103,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "tapToPaintMs": 69.60000014305115,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8
+        },
+        "type": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "keyToPaintMs": [
+            52.10000014305115,
+            38,
+            36.5,
+            36.90000009536743
+          ],
+          "worstKeyToPaintMs": 52.10000014305115,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.4,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            26.299999952316284,
+            27.299999952316284,
+            37,
+            23.399999856948853
+          ],
+          "worstKeyToPaintMs": 37,
+          "handlerMs": [
+            10,
+            10.899999856948853,
+            14.200000047683716,
+            10.699999809265137
+          ],
+          "totalHandlerMs": 45.799999713897705,
+          "totalSearchMs": 15.199999809265137,
+          "queuedMs": [
+            2.299999952316284,
+            2.700000047683716,
+            3.200000047683716,
+            2.5
+          ],
+          "sentGapsMs": [
+            69.5,
+            70.29999995231628,
+            70.90000009536743
+          ],
+          "lastKeyToFinalPaintMs": 23.399999856948853,
+          "firstKeyToFinalPaintMs": 234.09999990463257,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            26.40000009536743,
+            32.39999985694885,
+            33,
+            25.09999990463257
+          ],
+          "worstKeyToPaintMs": 33,
+          "handlerMs": [
+            11.200000047683716,
+            12.799999952316284,
+            11.299999952316284,
+            7.5
+          ],
+          "totalHandlerMs": 42.799999952316284,
+          "totalSearchMs": 11,
+          "queuedMs": [
+            2.5,
+            2.799999952316284,
+            2.299999952316284,
+            4.099999904632568
+          ],
+          "sentGapsMs": [
+            70.10000014305115,
+            70.5,
+            71
+          ],
+          "lastKeyToFinalPaintMs": 25.09999990463257,
+          "firstKeyToFinalPaintMs": 236.70000004768372,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 0.6999998092651367,
+          "search_bl": 1,
+          "search_bla": 3.3000001907348633,
+          "search_blah": 3.799999952316284,
+          "search_e": 0.10000014305114746
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      },
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7,
+          "indexMs": 107.5,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.3,
+          "tapToPaintMs": 73.89999985694885,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7
+        },
+        "type": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.4,
+          "keyToPaintMs": [
+            45.39999985694885,
+            39.5,
+            35.10000014305115,
+            34.60000014305115
+          ],
+          "worstKeyToPaintMs": 45.39999985694885,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            27.700000047683716,
+            30.100000143051147,
+            29.700000047683716,
+            18.100000143051147
+          ],
+          "worstKeyToPaintMs": 30.100000143051147,
+          "handlerMs": [
+            10.299999952316284,
+            14.700000047683716,
+            11.5,
+            7.799999952316284
+          ],
+          "totalHandlerMs": 44.299999952316284,
+          "totalSearchMs": 18.399999856948853,
+          "queuedMs": [
+            2.6000001430511475,
+            2.1000001430511475,
+            1.2000000476837158,
+            1.6000001430511475
+          ],
+          "sentGapsMs": [
+            69.79999995231628,
+            69.60000014305115,
+            70.59999990463257
+          ],
+          "lastKeyToFinalPaintMs": 18.100000143051147,
+          "firstKeyToFinalPaintMs": 228.10000014305115,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            29,
+            28.200000047683716,
+            25,
+            18.600000143051147
+          ],
+          "worstKeyToPaintMs": 29,
+          "handlerMs": [
+            13,
+            9.899999856948853,
+            10.200000047683716,
+            5.1000001430511475
+          ],
+          "totalHandlerMs": 38.200000047683716,
+          "totalSearchMs": 11.800000190734863,
+          "queuedMs": [
+            2.799999952316284,
+            1.4000000953674316,
+            1.2999999523162842,
+            2
+          ],
+          "sentGapsMs": [
+            70.79999995231628,
+            70.20000004768372,
+            70.39999985694885
+          ],
+          "lastKeyToFinalPaintMs": 18.600000143051147,
+          "firstKeyToFinalPaintMs": 230,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 0.5999999046325684,
+          "search_bl": 1.1000001430511475,
+          "search_bla": 3.3000001907348633,
+          "search_blah": 3.799999952316284,
+          "search_e": 0.10000014305114746
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      },
+      {
+        "vault": {
+          "notes": 1723,
+          "totalChars": 3904911
+        },
+        "index": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7,
+          "indexMs": 144.90000009536743,
+          "indexed": 1711
+        },
+        "open": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 1,
+          "worstFrameMs": 33.4,
+          "tapToPaintMs": 106.60000014305115,
+          "rowsInDom": 50,
+          "matchCount": "1711 notes",
+          "inputFocused": true
+        },
+        "keyboard": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8
+        },
+        "type": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 2,
+          "worstFrameMs": 33.4,
+          "keyToPaintMs": [
+            77.5,
+            55.30000019073486,
+            48.40000009536743,
+            52.90000009536743
+          ],
+          "worstKeyToPaintMs": 77.5,
+          "query": "game",
+          "rowsInDom": 50,
+          "matchCount": "673 matches"
+        },
+        "scroll": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.7,
+          "rowsInDom": 100
+        },
+        "typedRowsAtEnd": 675,
+        "allRowsAtEnd": 1712,
+        "fastType": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 2,
+          "worstFrameMs": 33.4,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            31.5,
+            41.60000014305115,
+            50.10000014305115,
+            25.5
+          ],
+          "worstKeyToPaintMs": 50.10000014305115,
+          "handlerMs": [
+            12,
+            15.599999904632568,
+            18.700000047683716,
+            10.099999904632568
+          ],
+          "totalHandlerMs": 56.39999985694885,
+          "totalSearchMs": 17.300000190734863,
+          "queuedMs": [
+            3.299999952316284,
+            2.200000047683716,
+            11.400000095367432,
+            6.299999952316284
+          ],
+          "sentGapsMs": [
+            71,
+            69.5,
+            71.40000009536743
+          ],
+          "lastKeyToFinalPaintMs": 25.5,
+          "firstKeyToFinalPaintMs": 237.40000009536743,
+          "query": "blah",
+          "matchCount": "3 matches",
+          "correct": true
+        },
+        "fastDelete": {
+          "longTaskCount": 0,
+          "longTaskTotalMs": 0,
+          "worstTaskMs": 0,
+          "droppedFrames": 0,
+          "worstFrameMs": 16.8,
+          "keystrokes": 4,
+          "keyToPaintMs": [
+            35.40000009536743,
+            35.59999990463257,
+            40.700000047683716,
+            29.200000047683716
+          ],
+          "worstKeyToPaintMs": 40.700000047683716,
+          "handlerMs": [
+            15.800000190734863,
+            14.799999952316284,
+            14.700000047683716,
+            9.299999952316284
+          ],
+          "totalHandlerMs": 54.60000014305115,
+          "totalSearchMs": 13.799999952316284,
+          "queuedMs": [
+            3.299999952316284,
+            3.799999952316284,
+            3,
+            4.799999952316284
+          ],
+          "sentGapsMs": [
+            71.90000009536743,
+            68.79999995231628,
+            69.5
+          ],
+          "lastKeyToFinalPaintMs": 29.200000047683716,
+          "firstKeyToFinalPaintMs": 239.40000009536743,
+          "query": "",
+          "matchCount": "1711 notes",
+          "correct": true
+        },
+        "bench": {
+          "search_b": 0.5999999046325684,
+          "search_bl": 1.1000001430511475,
+          "search_bla": 3.5999999046325684,
+          "search_blah": 4,
+          "search_e": 0.2999999523162842
+        },
+        "benchMatches": {
+          "b": 1615,
+          "bl": 1086,
+          "bla": 122,
+          "blah": 3,
+          "e": 1708
+        }
+      }
+    ]
+  }
+}
