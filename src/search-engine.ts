@@ -78,10 +78,62 @@ export function highlightPieces(text: string, terms: string[]): SnippetPiece[] {
 // ─── Search Result ───────────────────────────────────────────────
 
 export interface SearchResult {
-    file: TFile;
-    filename: string;         // original-case basename
-    matchInFilename: boolean; // true if any search term matched in the filename
-    snippet?: SnippetPiece[]; // original-case pieces, hits flagged
+    readonly file: TFile;
+    readonly filename: string;         // original-case basename
+    readonly matchInFilename: boolean; // true if any search term matched in the filename
+    readonly snippet?: SnippetPiece[]; // original-case pieces, hits flagged
+}
+
+/**
+ * A query match. Lists render a few dozen rows of thousands of matches, so
+ * the snippet is built on first read rather than for every match.
+ */
+class Match implements SearchResult {
+    readonly file: TFile;
+    readonly filename: string;
+    private pieces: SnippetPiece[] | undefined | null = null;
+
+    constructor(private entry: IndexEntry, private terms: string[], readonly matchInFilename: boolean) {
+        this.file = entry.file;
+        this.filename = entry.rawFilename;
+    }
+
+    get snippet(): SnippetPiece[] | undefined {
+        if (this.pieces === null) this.pieces = extractSnippet(this.entry, this.terms);
+        return this.pieces;
+    }
+}
+
+/**
+ * Build an original-case snippet around the first term match, split into
+ * pieces so views can mark hits. Matching runs on the case-folded index,
+ * whose offsets line up with the original text.
+ */
+export function extractSnippet(entry: IndexEntry, terms: string[]): SnippetPiece[] | undefined {
+    const content = entry.content;
+    let firstPos = -1;
+    let matchLen = 0;
+    for (const term of terms) {
+        const t = foldCase(term);
+        if (!t) continue;
+        const pos = content.indexOf(t);
+        if (pos !== -1 && (firstPos === -1 || pos < firstPos)) {
+            firstPos = pos;
+            matchLen = t.length;
+        }
+    }
+    if (firstPos === -1) return undefined;
+    const windowSize = 100;
+    const half = Math.floor(windowSize / 2);
+    const start = Math.max(0, firstPos - half);
+    const end = Math.min(content.length, firstPos + matchLen + half);
+    const inner = entry.rawContent.substring(start, end).trim();
+    if (!inner) return undefined;
+
+    const pieces = highlightPieces(inner, terms);
+    if (start > 0) pieces.unshift({ text: '... ', hit: false });
+    if (end < content.length) pieces.push({ text: '...', hit: false });
+    return pieces;
 }
 
 // ─── Search Engine ───────────────────────────────────────────────
@@ -265,12 +317,7 @@ export class SearchEngine {
 
         for (const entry of this.index.values()) {
             if (this.evaluate(ast, entry)) {
-                results.push({
-                    file: entry.file,
-                    filename: entry.rawFilename,
-                    matchInFilename: entry.filename.includes(queryLower),
-                    snippet: this.extractSnippet(entry, positiveTerms),
-                });
+                results.push(new Match(entry, positiveTerms, entry.filename.includes(queryLower)));
             }
         }
 
@@ -344,39 +391,5 @@ export class SearchEngine {
             case 'NOT':
                 return !this.evaluate(node.operand, entry);
         }
-    }
-
-    // ─── Snippet Production ──────────────────────────────────────────
-
-    /**
-     * Build an original-case snippet around the first term match, split into
-     * pieces so views can mark hits. Matching runs on the case-folded index,
-     * whose offsets line up with the original text.
-     */
-    private extractSnippet(entry: IndexEntry, terms: string[]): SnippetPiece[] | undefined {
-        const content = entry.content;
-        let firstPos = -1;
-        let matchLen = 0;
-        for (const term of terms) {
-            const t = foldCase(term);
-            if (!t) continue;
-            const pos = content.indexOf(t);
-            if (pos !== -1 && (firstPos === -1 || pos < firstPos)) {
-                firstPos = pos;
-                matchLen = t.length;
-            }
-        }
-        if (firstPos === -1) return undefined;
-        const windowSize = 100;
-        const half = Math.floor(windowSize / 2);
-        const start = Math.max(0, firstPos - half);
-        const end = Math.min(content.length, firstPos + matchLen + half);
-        const inner = entry.rawContent.substring(start, end).trim();
-        if (!inner) return undefined;
-
-        const pieces = highlightPieces(inner, terms);
-        if (start > 0) pieces.unshift({ text: '... ', hit: false });
-        if (end < content.length) pieces.push({ text: '...', hit: false });
-        return pieces;
     }
 }

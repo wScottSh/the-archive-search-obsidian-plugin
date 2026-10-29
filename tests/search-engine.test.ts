@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SearchEngine, IndexEntry, SnippetPiece, foldCase, highlightPieces } from '../src/search-engine';
+import { SearchEngine, IndexEntry, SnippetPiece, extractSnippet, foldCase, highlightPieces } from '../src/search-engine';
 import { parseQuery, SearchNode } from '../src/parser';
 import { extractSearchTerms } from '../src/editor-highlight';
 import { TFile } from 'obsidian';
@@ -141,7 +141,7 @@ describe('SearchEngine snippet extraction', () => {
         const ast = parseQuery(query);
         const terms = ast ? extractSearchTerms(ast) : [];
         const entry = mockEntry(filename, content);
-        return (createEngine() as any).extractSnippet(entry, terms);
+        return extractSnippet(entry, terms);
     }
 
     function joinPieces(pieces: SnippetPiece[] | undefined): string | undefined {
