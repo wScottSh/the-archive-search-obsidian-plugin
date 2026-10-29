@@ -1,7 +1,7 @@
 /**
  * Emulated-phone perf harness for the mobile search flow.
  *
- *   npm run perf -- [--runs 5] [--throttle 4] [--vault <dir>] [--save baseline] [--profile name]
+ *   npm run perf -- [--runs 5] [--throttle 4] [--vault <dir>] [--app-css <file>] [--save baseline] [--profile name]
  *
  * Each run is a cold page in a fresh context (411x914, DPR 2.625, touch,
  * CPU throttled through CDP) that walks the user's flow: index build at
@@ -13,7 +13,9 @@
  * Last, it times engine.search alone for short queries.
  *
  * --vault reads every .md under <dir> (skipping dot folders) in place of the
- * synthetic vault. --profile writes a CPU profile of the fast typing from one
+ * synthetic vault. --app-css loads a stylesheet ahead of the plugin's, such as
+ * Obsidian's own app.css, whose thousands of rules every new row is matched
+ * against on a device. --profile writes a CPU profile of the fast typing from one
  * extra unreported run to perf/out/<name>.cpuprofile and prints its top costs.
  * Prints median [min-max] per metric; --save writes perf/results/<name>.json.
  */
@@ -38,6 +40,7 @@ const throttle = Number(arg('throttle', 4));
 const save = arg('save', undefined);
 const vaultDir = arg('vault', undefined);
 const profile = arg('profile', undefined);
+const appCss = arg('app-css', undefined);
 
 const FRAME_MS = 1000 / 60;
 const KEY_GAP_MS = 180;
@@ -71,6 +74,12 @@ function readVault(root) {
     walk(root);
     return notes;
 }
+
+const appCssScript = appCss && `document.addEventListener('DOMContentLoaded', () => {
+    const style = document.createElement('style');
+    style.textContent = ${JSON.stringify(readFileSync(appCss, 'utf8'))};
+    document.head.prepend(style);
+});`;
 
 const vaultScript = vaultDir ? `window.perfVault = ${JSON.stringify(readVault(path.resolve(vaultDir)))};` : undefined;
 
@@ -210,6 +219,7 @@ async function oneRun(browser, profileName) {
     });
     const page = await context.newPage();
     if (vaultScript) await page.addInitScript({ content: vaultScript });
+    if (appCssScript) await page.addInitScript({ content: appCssScript });
     await page.goto(pathToFileURL(path.join(dir, 'page.html')).href);
     const cdp = await context.newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
@@ -351,6 +361,7 @@ if (save) {
         chromium: version,
         viewport: '411x914 @2.625 touch',
         vault: vaultDir ?? 'synthetic',
+        appCss: appCss ?? null,
         keyGapMs: KEY_GAP_MS,
         fastKeyGapMs: FAST_KEY_GAP_MS,
         benchIterations: BENCH_ITERATIONS,

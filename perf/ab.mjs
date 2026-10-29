@@ -3,7 +3,7 @@
  * side per round, alternating which goes first, so drift and other load on
  * the machine land on both sides alike.
  *
- *   npm run perf:ab -- --base <ref> [--rounds 5] [--throttle 10] [--vault <dir>] [--save name]
+ *   npm run perf:ab -- --base <ref> [--rounds 5] [--throttle 10] [--vault <dir>] [--app-css <file>] [--save name]
  *
  * The ref must already have the fast-typing harness. Prints median [min-max]
  * per side; --save writes perf/results/<name>.json.
@@ -26,6 +26,7 @@ const base = arg('base', 'HEAD');
 const rounds = Number(arg('rounds', 5));
 const throttle = arg('throttle', '10');
 const vault = arg('vault', undefined);
+const appCss = arg('app-css', undefined);
 const save = arg('save', undefined);
 
 const git = (...args) => execFileSync('git', args, { cwd: root }).toString().trim();
@@ -57,6 +58,7 @@ const METRICS = [
 function runOnce(dir) {
     const args = ['perf/run.mjs', '--runs', '1', '--throttle', throttle, '--save', '_ab'];
     if (vault) args.push('--vault', vault);
+    if (appCss) args.push('--app-css', path.resolve(appCss));
     execFileSync('node', args, { cwd: dir, stdio: 'ignore' });
     const run = JSON.parse(readFileSync(path.join(dir, 'perf/results/_ab.json'), 'utf8')).runs[0];
     if (!run.fastType.correct || !run.fastDelete.correct) throw new Error(`wrong final list in ${dir}`);
@@ -96,6 +98,7 @@ if (save) {
         rounds,
         cpuThrottle: Number(throttle),
         vault: vault ?? 'synthetic',
+        appCss: appCss ?? null,
         host: os.cpus()[0].model,
         loadAverage: os.loadavg(),
     };
