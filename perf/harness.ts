@@ -1,11 +1,12 @@
 /**
  * In-page side of the perf harness: mounts the real SearchEngine, SearchSession
- * and MobileSearchModal over a synthetic vault and records long tasks and frames.
+ * and MobileSearchModal over a synthetic vault, or the notes `run.mjs --vault`
+ * injects as `window.perfVault`, and records long tasks, frames and keystrokes.
  * `perf/run.mjs` drives it through Playwright.
  */
 
 import { App, MarkdownView, TFile } from './obsidian-shim';
-import { makeVault } from './vault';
+import { DiskNote, makeVault, vaultFromNotes } from './vault';
 import { SearchEngine } from '../src/search-engine';
 import { MobileSearchModal } from '../src/mobile-search-modal';
 import type { ArchiveSearchSettings } from '../src/settings';
@@ -64,7 +65,8 @@ function frameLoop(time: number): void {
     requestAnimationFrame(frameLoop);
 }
 
-const vault = makeVault();
+const diskNotes = (window as any).perfVault as DiskNote[] | undefined;
+const vault = diskNotes ? vaultFromNotes(diskNotes) : makeVault();
 const viewport = new FakeViewport();
 Object.defineProperty(window, 'visualViewport', { configurable: true, get: () => viewport });
 
@@ -88,6 +90,22 @@ const plugin = { settings, searchEngine: engine, mobileSession: undefined } as u
 const openTimes: number[] = [];
 const inputLatencies: number[] = [];
 
+/** One input event: when it was sent, when its handlers ran, when the frame after them painted. */
+interface Keystroke {
+    sentAt: number;
+    handlerStart: number;
+    handlerEnd: number;
+    paintedAt: number;
+    value: string;
+}
+
+let keystrokes: Keystroke[] = [];
+/** When the latest key went down. The input event it causes is stamped when it fires, so it cannot show queueing. */
+let keyDownAt = 0;
+document.addEventListener('keydown', (event) => {
+    keyDownAt = event.timeStamp;
+}, true);
+
 const openButton = document.body.createEl('button', { cls: 'perf-open', text: 'Search' });
 openButton.addEventListener('click', (event) => {
     const tappedAt = event.timeStamp;
@@ -96,15 +114,30 @@ openButton.addEventListener('click', (event) => {
 });
 
 document.addEventListener('input', (event) => {
-    const typedAt = event.timeStamp;
-    void afterNextFrame().then((paintedAt) => inputLatencies.push(paintedAt - typedAt));
+    const typedAt = keyDownAt || event.timeStamp;
+    const stroke: Keystroke = {
+        sentAt: typedAt,
+        handlerStart: performance.now(),
+        handlerEnd: 0,
+        paintedAt: 0,
+        value: (event.target as HTMLInputElement).value,
+    };
+    keystrokes.push(stroke);
+    void afterNextFrame().then((paintedAt) => {
+        stroke.paintedAt = paintedAt;
+        inputLatencies.push(paintedAt - typedAt);
+    });
 }, true);
+document.addEventListener('input', () => {
+    keystrokes[keystrokes.length - 1].handlerEnd = performance.now();
+});
 
 const harness = {
     vaultStats: () => ({ notes: vault.files.length, totalChars: vault.totalChars }),
 
     startRecording(): void {
         frames = [];
+        keystrokes = [];
         recordStart = performance.now();
         recording = true;
         requestAnimationFrame(frameLoop);
@@ -116,8 +149,10 @@ const harness = {
         const end = performance.now();
         const tasks = longTasks.filter((task) => task.start >= recordStart && task.start < end);
         const intervals = frames.slice(1).map((time, i) => time - frames[i]);
+        const strokes = keystrokes.splice(0);
         return {
             windowMs: end - recordStart,
+            keystrokes: strokes,
             longTasks: tasks.map((task) => Math.round(task.duration)),
             frameIntervals: intervals.map((interval) => Math.round(interval * 10) / 10),
             openToPaintMs: openTimes.splice(0),
@@ -129,6 +164,25 @@ const harness = {
         const start = performance.now();
         await engine.buildIndex();
         return { indexMs: performance.now() - start, indexed: engine.search('').length };
+    },
+
+    /** The match count the modal should show for `query`, straight from the engine. */
+    expectedCount: (query: string) => engine.search(query).length,
+
+    /** Median, min and max ms of `engine.search(query)` over `iterations` runs, after a warmup. */
+    benchSearch(queries: string[], iterations: number) {
+        return queries.map((query) => {
+            let matches = 0;
+            for (let i = 0; i < 3; i++) matches = engine.search(query).length;
+            const times: number[] = [];
+            for (let i = 0; i < iterations; i++) {
+                const start = performance.now();
+                matches = engine.search(query).length;
+                times.push(performance.now() - start);
+            }
+            times.sort((a, b) => a - b);
+            return { query, matches, medianMs: times[times.length >> 1], minMs: times[0], maxMs: times[times.length - 1] };
+        });
     },
 
     state: () => ({
